@@ -1,0 +1,7 @@
+{
+    "name": "framework-wizio-gsm",
+    "description": "Framework for GSM Modules 2021 Georgi Angelov",
+    "xurl": "https://github.com/Wiz-IO/framework-wizio-gsm",
+    "system": "*",
+    "version": "1.0.0"
+}
