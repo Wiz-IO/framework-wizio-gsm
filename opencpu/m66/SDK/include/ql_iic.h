@@ -33,6 +33,8 @@
 #ifndef __QL_IIC_H__
 #define __QL_IIC_H__
 
+#include "ql_type.h" //// WizIO
+#include "ql_gpio.h" //// WizIO
 
 /*****************************************************************
 * Function:     Ql_IIC_Init 
