@@ -32,6 +32,9 @@ extern "C"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "ql_common.h"
 #include "ql_type.h"
@@ -118,18 +121,9 @@ extern "C"
     void delay(unsigned int);
     void delayMicroseconds(unsigned int us);
 
-    long atol(const char *s);
-    char *itoa(int value, char *result, int base);
-    char *ltoa(long value, char *result, int base);
-    char *utoa(unsigned value, char *result, int base);
-    char *ultoa(unsigned long value, char *result, int base);
-
-    int isascii(int c);
-    int toascii(int c);
-    int isalpha(int c);
-    int isspace(int c);
-    int isdigit(int c);
-    int isxdigit(int c);
+    extern char *utoa(unsigned int value, char *buffer, int radix);
+    static inline char *ltoa(long value, char *result, int base) { return utoa(value, result, base); }
+    static inline char *ultoa(unsigned long value, char *result, int base) { return utoa(value, result, base); }
 
     uint32_t clockCyclesPerMicrosecond(void);
     uint32_t clockCyclesToMicroseconds(uint32_t a);
@@ -141,6 +135,15 @@ extern "C"
 #ifndef SERIAL_BUFFER_SIZE
 #define SERIAL_BUFFER_SIZE 256
 #endif
+
+#define digitalPinToPort(p) -1
+#define digitalPinToBitMask(p) -1
+#define digitalPinToClkid(p) -1
+#define digitalPinSPIAvailiable(p) -1
+#define digitalPinToSPIDevice(p) -1
+#define digitalPinToSPIClockId(p) -1
+#define portOutputRegister(port) -1
+#define portInputRegister(port) -1
 
     // for SPI
     __attribute__((always_inline)) static inline uint32_t __RBIT(uint32_t value)

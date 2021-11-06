@@ -95,3 +95,37 @@ void *calloc(size_t count, size_t size)
     }
     return NULL;
 }
+
+/////////
+
+int _isatty(int fd) { return (unsigned int)fd <= STDERR_FILENO; }
+
+int _fstat_r(struct _reent *r, int fd, struct stat *st) { return -EINVAL; }
+
+_off_t _lseek_r(struct _reent *r, int fd, _off_t where, int whence)
+{
+    int err = -EINVAL;
+    errno = (err < 0) ? -err : 0;
+    return err;
+}
+
+int _close_r(struct _reent *r, int fd)
+{
+    int err = 0;
+    errno = err;
+    return err;
+}
+
+_ssize_t _read_r(struct _reent *r, int fd, void *buf, size_t len)
+{
+    int err = -EINVAL;
+    errno = (err < 0) ? -err : 0;
+    return err;
+}
+
+_ssize_t _write_r(struct _reent *r, int fd, const void *buf, size_t len)
+{
+    int err = -EINVAL;
+    errno = (err < 0) ? -err : 0;
+    return err;
+}

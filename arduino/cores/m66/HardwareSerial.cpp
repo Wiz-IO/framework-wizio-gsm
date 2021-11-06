@@ -54,10 +54,7 @@ void HardwareSerial::begin(unsigned long baud, void *config) // TODO
     res = Ql_UART_Open(port, baud, FC_NONE);
 }
 
-void HardwareSerial::begin(unsigned long baud)
-{
-  begin(baud, NULL);
-}
+void HardwareSerial::begin(unsigned long baud) { begin(baud, NULL); }
 
 void HardwareSerial::end()
 {
@@ -65,10 +62,7 @@ void HardwareSerial::end()
   _rx_buffer_head = _rx_buffer_tail;
 }
 
-size_t HardwareSerial::write(uint8_t c)
-{
-  return Ql_UART_Write(port, &c, 1);
-}
+size_t HardwareSerial::write(uint8_t c) { return Ql_UART_Write(port, &c, 1); }
 
 size_t HardwareSerial::write(const uint8_t *buf, size_t size)
 {

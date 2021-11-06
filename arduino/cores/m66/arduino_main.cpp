@@ -16,11 +16,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <interface.h>
-
-//#include <DEV.h>
-//extern DeviceClass Dev;
-
+#include "interface.h"
+#include "Dev.h"
+extern DeviceClass Dev;
 extern void setup();
 extern void loop();
 
@@ -29,7 +27,7 @@ static struct
     uint32_t wait;
     uint32_t event;
     ST_MSG msg;
-} arduino = {10 /* default task wait */, 0, {0, 0, 0, 0}};
+} arduino = {10 /* default task wait mSec */, 0, {0, 0, 0, 0}};
 
 void arduinoSetWait(u32 wait)
 {
@@ -41,24 +39,24 @@ static inline void arduinoDispatchMessages(void)
     switch (arduino.msg.message)
     {
     case MSG_ID_URC_INDICATION:
-        //Dev.m_Urc(arduino.msg.param1, arduino.msg.param2);
+        Dev.m_Urc(arduino.msg.param1, arduino.msg.param2);
         break;
     default:
-        //Dev.m_Message(&arduino.msg);
+        Dev.m_Message(&arduino.msg);
         break;
     }
 }
 
-void arduinoProcessMessages(unsigned int wait)
+void arduinoProcessMessages(unsigned int wait) // UART, TIMER ... etc process callbacks
 {
     u32 id = Ql_OS_GetActiveTaskId();
     if (ARDUINO_TASK_ID == id)
     {
-        Ql_OS_GetMessage(&arduino.msg);                    // there is always more than zero
+        Ql_OS_GetMessage(&arduino.msg);                    // there is always more messages (send one empty message)
         Ql_OS_SendMessage(id, MSG_PROCESS_MESSAGES, 0, 0); // send one empty message
         arduinoDispatchMessages();
     }
-    Ql_Sleep(wait);
+    Ql_Sleep(wait); // default is 10 mSec, make more -> arduinoSetWait(mSec) if Arduino loop() is not critical
 }
 
 void delayEx(unsigned int ms)
@@ -75,9 +73,11 @@ extern "C" void proc_arduino(int id)
 {
     while (arduino.event == 0)
         Ql_Sleep(10);
-    Ql_OS_WaitEvent(arduino.event, 1);                 // wait ril ready
+    Ql_OS_WaitEvent(arduino.event, 1);                 // block & wait ril ready
+
     Ql_OS_SendMessage(id, MSG_PROCESS_MESSAGES, 0, 0); // send one empty message
     arduinoProcessMessages(arduino.wait);
+
     setup();
     while (true)
     {
@@ -89,9 +89,10 @@ extern "C" void proc_arduino(int id)
 // Main Task
 extern "C" void proc_main_task(int taskId)
 {
-    arduino.event = Ql_OS_CreateEvent((char *)"ARDUINO_EVENT");
-    __libc_init_array();
     ST_MSG m;
+    __libc_init_array();
+    arduino.event = Ql_OS_CreateEvent((char *)"ARDUINO_EVENT");
+    srand(HAL_SEED);
     while (true)
     {
         Ql_OS_GetMessage(&m);
