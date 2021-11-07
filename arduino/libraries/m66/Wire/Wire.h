@@ -36,26 +36,42 @@ public:
     default_init(port);
   }
 
-  /* for SW */
+  /* pins is valid only SW */
   TwoWire(uint8_t port, Enum_PinName SCL, Enum_PinName SDA)
   {
     default_init(port);
-    scl = SCL;
-    sda = SDA;
+    setPins(SCL, SDA);
   }
 
   void begin();
   void end();
 
-  /* !!! BEFORE BEGIN, 7 bits !!! */
+  /* !!! BEFORE begin(), 7 bits !!! */
   void setAddress(uint8_t address) { slaveAddress = address; }
+
+  /* !!! BEFORE begin(), pins is valid only SW */
+  void setPins(Enum_PinName SCL, Enum_PinName SDA)
+  {
+    scl = SCL;
+    sda = SDA;
+  }
+  void setPins(uint8_t SCL, uint8_t SDA)
+  {
+    PinDescription *n = getArduinoPin(SCL);
+    if (n)
+      scl = (Enum_PinName)n->device;
+
+    n = getArduinoPin(SDA);
+    if (n)
+      sda = (Enum_PinName)n->device;
+  }
 
   void setClock(uint32_t Hz);
 
   void beginTransmission(uint8_t address)
   {
-    slaveAddress = address;
     tx.clear();
+    slaveAddress = address;
     transmissionBegun = true;
   }
   uint8_t endTransmission(bool stopBit);
@@ -94,6 +110,7 @@ private:
   bool transmissionBegun;
   void default_init(uint8_t port);
   uint32_t QL_Write(uint8_t *buf, uint32_t len);
+  uint32_t QL_Read(uint8_t *buf, uint32_t len);
 
   i2c_context_t *ctx;
 
