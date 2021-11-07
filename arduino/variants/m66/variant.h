@@ -33,13 +33,14 @@ extern "C"
 
 #define ADC0 PINNAME_END /* ONLY ONE PIN */
 
+#define MAX_PINS 13
     typedef struct
     {
         uint8_t arduino;
         uint8_t device;
         void *eint;
     } PinDescription;
-    extern PinDescription pinsMap[13];
+    extern PinDescription pinsMap[MAX_PINS];
 
     PinDescription *getArduinoPin(uint8_t arduinoPin);
     PinDescription *getDevicePin(uint8_t devicePin);

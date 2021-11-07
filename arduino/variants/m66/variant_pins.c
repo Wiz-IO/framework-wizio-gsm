@@ -18,7 +18,7 @@
 
 #include "variant.h"
 
-PinDescription pinsMap[13] = {
+PinDescription pinsMap[MAX_PINS] = {
     {0, PINNAME_NETLIGHT, NULL},
     {1, PINNAME_DTR, NULL},
     {2, PINNAME_RI, NULL},
