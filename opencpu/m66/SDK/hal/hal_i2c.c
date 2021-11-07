@@ -41,7 +41,7 @@ i2c_context_t *I2C_Create(void)
     ctx->config.LoSpeed = 100;
     ctx->config.HiSpeed = 100;
     ctx->config.Delay = 4;
-    ctx->config.IO = 0; // 4;
+    ctx->config.IO = 0; //
     return ctx;
 }
 
@@ -68,12 +68,12 @@ int I2C_Open(i2c_context_t *ctx)
     i2c_current_owner = ctx->id;
     //end-protect
 
+    PCTL_PowerUp(PD_I2C);
     I2C_SOFTRESET_REG = 1;
 
     GPIO_Setup(GPIO43, GPMODE(GPIO43_MODE_SCL) | GPPULLEN | GPPUP);
     GPIO_Setup(GPIO44, GPMODE(GPIO44_MODE_SDA) | GPPULLEN | GPPUP);
 
-    PCTL_PowerUp(PD_I2C);
     return 0;
 }
 
@@ -147,14 +147,13 @@ int I2C_UpdateSpeed(i2c_context_t *ctx, bool recalculate)
     return 0;
 }
 
+// MAX LEN = 8
 int I2C_BeginTransaction(i2c_context_t *ctx, I2C_TRANSACTION_TYPE command,
                          uint8_t *write_buffer, uint32_t write_len,
                          uint8_t *read_buffer, uint32_t read_len)
 {
-    if (i2c_in_use(ctx))
+    if (i2c_in_use(ctx) || write_len > 8 || read_len > 8)
         return -1;
-
-    ////PCTL_PowerUp(PD_I2C); // on Open()
 
     I2C_HS.NACKERR_DET_EN = 1;
     I2C_CONTROL_REG = I2C_CONTROL_ACKERR_DET_EN || I2C_CONTROL_CLKEXT_EN;
@@ -166,31 +165,54 @@ int I2C_BeginTransaction(i2c_context_t *ctx, I2C_TRANSACTION_TYPE command,
     I2C_TRANSAC_LEN_REG = 1;
     I2C_SLAVE_REG = ctx->config.SlaveAddress << 1;
 
-    I2C_UpdateSpeed(ctx, false);
-
     switch (command)
     {
     case I2C_TRANSACTION_WRITE_AND_READ:
-        I2C_CONTROL.RS_STOP = 1;
-        I2C_CONTROL.DIR_CHANGE = 1;
-        I2C_TRANSFER_LEN_AUX_REG = read_len;
+        if (read_buffer && read_len)
+        {
+            I2C_CONTROL.RS_STOP = 1;
+            I2C_CONTROL.DIR_CHANGE = 1;
+            I2C_TRANSFER_LEN_AUX_REG = read_len;
+        }
+        else
+        {
+            return -1;
+        }
         /* no break */
+
     case I2C_TRANSACTION_CONT_WRITE:
         if (ctx->config.Delay == 0)
             I2C_CONTROL.RS_STOP = 1;
         /* no break */
+
     case I2C_TRANSACTION_WRITE:
-        I2C_TRANSFER_LEN_REG = write_len;
-        for (int i = 0; i < write_len; i++)
-            I2C_DATA_PORT_REG = *write_buffer++;
+        if (write_buffer && write_len)
+        {
+            I2C_TRANSFER_LEN_REG = write_len;
+            for (int i = 0; i < write_len; i++)
+                I2C_DATA_PORT_REG = *write_buffer++;
+        }
+        else
+        {
+            return -1;
+        }
         break;
+
     case I2C_TRANSACTION_CONT_READ:
         if (ctx->config.Delay == 0)
             I2C_CONTROL.RS_STOP = 1;
         /* no break */
+
     case I2C_TRANSACTION_READ:
-        I2C_ADDRESS.RW = 1;
-        I2C_TRANSFER_LEN_REG = read_len;
+        if (read_buffer && read_len)
+        {
+            I2C_TRANSFER_LEN_REG = read_len;
+            I2C_ADDRESS.RW = 1;
+        }
+        else
+        {
+            return -1;
+        }
         break;
     }
 
@@ -200,7 +222,7 @@ int I2C_BeginTransaction(i2c_context_t *ctx, I2C_TRANSACTION_TYPE command,
         sta = I2C_INT_STAT_REG;
     while (0 == sta);
 
-    int res = 0;
+    int res = 0;  // ok
     if (sta >> 1) // test errors
     {
         res = -(sta >> 1);
@@ -208,11 +230,44 @@ int I2C_BeginTransaction(i2c_context_t *ctx, I2C_TRANSACTION_TYPE command,
     }
 
     if (read_buffer && read_len)
+    {
         for (int i = 0; i < read_len; ++i)
             *read_buffer++ = I2C_DATA_PORT_REG;
+    }
 
 end:
     I2C_INT_STAT_REG = -1;
-    ////PCTL_PowerDown(PD_I2C); // on Close()
-    return res;
+    return res; // 0 or -error
+}
+
+uint32_t I2C_Transaction(i2c_context_t *ctx, uint8_t *buf, uint32_t len, bool read)
+{
+    if (i2c_in_use(ctx) || NULL == buf || 0 == len)
+        return -1; // bad params
+
+    int size = len, res = -1, cnt;
+
+    while (size > 0)
+    {
+        cnt = (size / 8) ? 8 : size; // max size 8 bytes
+        if (read)
+        {
+            res = I2C_BeginTransaction(ctx, I2C_TRANSACTION_READ, NULL, 0, buf, cnt);
+        }
+        else /*write*/
+        {
+            res = I2C_BeginTransaction(ctx, I2C_TRANSACTION_WRITE, buf, cnt, NULL, 0);
+        }
+        if (res == 0)
+        {
+            buf += cnt;
+            size -= cnt;
+        }
+        else
+        {
+            return res;
+        }
+    }
+
+    return len;
 }

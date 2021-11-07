@@ -201,6 +201,8 @@ typedef struct {
                              uint8_t *write_buffer, uint32_t write_len,
                              uint8_t *read_buffer, uint32_t read_len);
 
+    uint32_t I2C_Transaction(i2c_context_t *ctx, uint8_t *buf, uint32_t len, bool read);
+
 #ifdef __cplusplus
 }
 #endif
