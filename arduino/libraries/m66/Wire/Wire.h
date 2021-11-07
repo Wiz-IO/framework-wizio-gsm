@@ -23,37 +23,64 @@
 #include "Stream.h"
 #include "variant.h"
 #include "RingBuffer.h"
+#include "hal_i2c.h"
 
 #define BUFFER_LENGTH SERIAL_BUFFER_SIZE
 
 class TwoWire : public Stream
 {
 public:
-  TwoWire(uint8_t i2c_port);
+  /* default pins */
+  TwoWire(uint8_t port)
+  {
+    default_init(port);
+  }
+
+  /* for SW */
+  TwoWire(uint8_t port, Enum_PinName SCL, Enum_PinName SDA)
+  {
+    default_init(port);
+    scl = SCL;
+    sda = SDA;
+  }
 
   void begin();
   void end();
 
+  /* !!! BEFORE BEGIN, 7 bits !!! */
+  void setAddress(uint8_t address) { slaveAddress = address; }
+
   void setClock(uint32_t Hz);
 
-  void beginTransmission(uint8_t);
+  void beginTransmission(uint8_t address)
+  {
+    slaveAddress = address;
+    tx.clear();
+    transmissionBegun = true;
+  }
   uint8_t endTransmission(bool stopBit);
-  uint8_t endTransmission(void);
+  uint8_t endTransmission() { return endTransmission(true); }
 
   uint8_t requestFrom(uint8_t address, size_t quantity, bool stopBit);
-  uint8_t requestFrom(uint8_t address, size_t quantity);
+  uint8_t requestFrom(uint8_t address, size_t quantity) { return requestFrom(address, quantity, true); }
 
-  virtual int available(void);
-  virtual int read(void);
-  virtual int peek(void);
-  virtual void flush(void){}
+  virtual int available(void) { return rx.available(); }
+  virtual int peek(void) { return rx.peek(); }
+  virtual void flush(void) {}
 
-  virtual size_t write(uint8_t);
+  virtual int read(void) { return rx.read_char(); }
 
   inline size_t write(unsigned long n) { return write((uint8_t)n); }
   inline size_t write(long n) { return write((uint8_t)n); }
   inline size_t write(unsigned int n) { return write((uint8_t)n); }
   inline size_t write(int n) { return write((uint8_t)n); }
+  virtual size_t write(uint8_t ucData)
+  {
+    if (!transmissionBegun || tx.isFull())
+      return 0;
+    tx.store_char(ucData);
+    return 1;
+  }
   using Print::write;
 
   void onService(void){};
@@ -63,14 +90,14 @@ public:
 private:
   u32 i2c_port, i2c_speed;
   Enum_PinName scl, sda;
-
-  bool transmissionBegun;
   uint8_t slaveAddress;
+  bool transmissionBegun;
+  void default_init(uint8_t port);
+  uint32_t QL_Write(uint8_t *buf, uint32_t len);
+
+  i2c_context_t *ctx;
 
   RingBuffer rx, tx;
-
-  void (*onRequestCallback)(void){};
-  void (*onReceiveCallback)(int){};
 };
 
 extern TwoWire Wire;

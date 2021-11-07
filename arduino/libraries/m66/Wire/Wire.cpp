@@ -18,147 +18,159 @@
 
 #include <Arduino.h>
 #include "Wire.h"
-#include "hal_gpio.h"
 
 #define DEBUG_I2C Serial.printf
 
+#define HAL_TYPE (0 == i2c_port)
 #define I2C_TYPE (1 == i2c_port)
 
-static void i2c_io(uint8_t i2c_port)
+void TwoWire::default_init(uint8_t port)
 {
-	if (I2C_TYPE)
-	{
-		GPIO_Setup(GPIO43, GPMODE(GPIO43_MODE_SCL) | GPPULLEN | GPPDN); // GPPUP
-		GPIO_Setup(GPIO44, GPMODE(GPIO44_MODE_SDA) | GPPULLEN | GPPDN); // GPPUP
-	}
-}
-
-TwoWire::TwoWire(uint8_t port)
-{
+	i2c_port = port;
 	i2c_speed = 0;
-	i2c_port = port & 1; // 0:SW or 1:HW
-	slaveAddress = 1;
-	transmissionBegun = false;
-}
-
-void TwoWire::begin(void)
-{
-	int res;
-	if (I2C_TYPE)
+	slaveAddress = 0;
+	transmissionBegun = 0;
+	scl = PINNAME_RI;
+	sda = PINNAME_DCD;
+	if (HAL_TYPE)
 	{
-		scl = PINNAME_RI;
-		sda = PINNAME_DCD;
-	}
-	else
-	{
-		scl = PINNAME_CTS;
-		sda = PINNAME_RTS;
-	}
-	setClock(100000);
-}
-
-void TwoWire::setClock(uint32_t Hz)
-{
-	Ql_IIC_Uninit(i2c_port);
-	int res = Ql_IIC_Init(i2c_port, scl, sda, I2C_TYPE);
-	if (0 == res)
-	{
-		i2c_io(i2c_port);
-		Hz /= 1000;
-		if (Hz == 400)
-			Hz += 1; // work around
-		if (Hz != i2c_speed)
-		{
-			i2c_speed = Hz;
-			int res = Ql_IIC_Config(i2c_port, true, slaveAddress, i2c_speed);
-			if (res)
-			{
-				DEBUG_I2C("[ERROR] Ql_IIC_Config( P = %d, B = %d, A = 0x%02X ): %d\n", i2c_port, (int)i2c_speed, (int)slaveAddress, res);
-			}
-		}
+		ctx = I2C_Create();
 	}
 }
 
 void TwoWire::end()
 {
-	Ql_IIC_Uninit(i2c_port);
-}
-
-uint8_t TwoWire::requestFrom(uint8_t address, size_t quantity, bool stopBit)
-{
-	int res = -1;
-	if (quantity == 0)
-		return 0;
-	if (!stopBit)
-		return 0;
-	rx.clear();
-	//TODO: if IICtype = 1 ,1 < len < 8 . because our IIC contronller at most support 8 bytes
-	res = Ql_IIC_Read(i2c_port, address, (uint8_t *)(rx._aucBuffer), (uint32_t)quantity);
-	if (res < 0)
+	if (HAL_TYPE)
 	{
-		//DEBUG_I2C("[I2C] R( %02X ) %d\n", (int)address, res);
-		quantity = 0;
+		I2C_Close(ctx);
 	}
-	rx._iHead = quantity;
-	return rx.available();
-}
-
-uint8_t TwoWire::requestFrom(uint8_t address, size_t quantity)
-{
-	return requestFrom(address, quantity, true);
-}
-
-void TwoWire::beginTransmission(uint8_t address)
-{
-	slaveAddress = address;
-	tx.clear();
-	transmissionBegun = true;
-}
-
-uint8_t TwoWire::endTransmission(bool stopBit)
-{
-	if (!stopBit)
-		return 1;
-	u32 count, i, size;
-	u8 buf[8];
-	transmissionBegun = false;
-	while (tx.available() > 0)
+	else
 	{
-		size = tx.available();
-		for (i = 0, count = 0; i < size; i++)
+		Ql_IIC_Uninit(i2c_port);
+	}
+}
+
+void TwoWire::begin(void)
+{
+	int res;
+	end();
+	if (HAL_TYPE)
+	{
+		res = I2C_Open(ctx);
+		DEBUG_I2C("[I2C] I2C_Open( %d )\n", res);
+	}
+	else
+	{
+		res = Ql_IIC_Init(i2c_port, scl, sda, I2C_TYPE);
+		if (res)
 		{
-			if (i > 7)
-				break;
-			buf[i] = tx.read_char();
-			count++;
+			DEBUG_I2C("[ERROR] Ql_IIC_Init( %d )\n", res);
 		}
-		int res = Ql_IIC_Write(i2c_port, slaveAddress, buf, count /*max 8*/);
-		if (res != count)
+		else
 		{
-			DEBUG_I2C("[I2C] Ql_IIC_Write( %02X ): %d\n", (int)buf[0], res);
-			return 1;
+			DEBUG_I2C("[I2C] Ql_IIC_Init( %d )\n", res);
 		}
 	}
+	setClock(100000);
+}
+
+/* only for HW, for SW baudrate is ignored */
+void TwoWire::setClock(uint32_t Hz)
+{
+	int res = 0;
+	if (i2c_port < 2 && Hz != i2c_speed)
+	{
+		Hz /= 1000;
+		if (Hz == 400)
+			Hz -= 1; // work around, high speed mode  [400..3400] kbps.
+		i2c_speed = Hz;
+		if (HAL_TYPE)
+		{
+			ctx->config.HiSpeed = Hz;
+			ctx->config.LoSpeed = Hz;
+			ctx->config.Mode = Hz < 400 ? I2C_TRANSACTION_LO_MODE : I2C_TRANSACTION_HI_MODE;
+			I2C_UpdateSpeed(ctx, true);
+		}
+		else
+		{
+			res = Ql_IIC_Config(i2c_port, true, slaveAddress, i2c_speed);
+			if (res)
+			{
+				DEBUG_I2C("[ERROR] Ql_IIC_Config( P = %d, B = %d, A = 0x%02X ) %d\n", i2c_port, (int)i2c_speed, (int)slaveAddress, res); // ??? QL_RET_ERR_IIC_SLAVE_TOO_MANY -310;
+			}
+		}
+	}
+}
+
+// TODO
+uint8_t TwoWire::requestFrom(uint8_t address, size_t size, bool stopBit)
+{
 	return 0;
 }
 
-uint8_t TwoWire::endTransmission()
+/*
+	0: success
+	1: data too long to fit in transmit buffer
+	2: received NACK on transmit of address
+	3: received NACK on transmit of data
+	4: other error
+*/
+uint8_t TwoWire::endTransmission(bool stopBit)
 {
-	return endTransmission(true);
+	int res = 4;
+	transmissionBegun = false;
+	if (stopBit)
+	{
+		uint32_t size = tx.available();
+		if (size && size < SERIAL_BUFFER_SIZE)
+		{
+			if (HAL_TYPE)
+			{
+				res = I2C_Transaction(ctx, tx._aucBuffer, size, false);
+			}
+			else
+			{
+				res = QL_Write(tx._aucBuffer, size);
+			}
+			if (res != size)
+			{
+				DEBUG_I2C("[ERROR] write: %d\n", res);
+				res = 4;
+			}
+			else
+			{
+				res = 0;
+			}
+		}
+	}
+	return res;
 }
 
-size_t TwoWire::write(uint8_t ucData)
+uint32_t TwoWire::QL_Write(uint8_t *buf, uint32_t len)
 {
-	if (!transmissionBegun || tx.isFull())
-		return 0;
-	tx.store_char(ucData);
-	return 1;
+	if (NULL == buf || 0 == len)
+		return -1;
+	int size = len, res, cnt;
+	while (size > 0)
+	{
+		cnt = (size / 8) ? 8 : size; // max size 8 bytes
+		res = Ql_IIC_Write(i2c_port, slaveAddress, buf, cnt);
+		if (res == cnt)
+		{
+			buf += cnt;
+			size -= cnt;
+		}
+		else
+		{
+			return res; // ??? QL_RET_ERR_I2CHWFAILED: -34
+		}
+	}
+	return len;
 }
 
-int TwoWire::available(void) { return rx.available(); }
-
-int TwoWire::read(void) { return rx.read_char(); }
-
-int TwoWire::peek(void) { return rx.peek(); }
-
-TwoWire Wire(1);
+/*
+	0: 		HAL Port
+	1: 		Quectel HW
+	2-254 	Quectel SW emulation
+*/
+TwoWire Wire(0);
