@@ -19,13 +19,23 @@
 #include <Arduino.h>
 #include "SPI.h"
 
-#define DEBUG_SPI /*DBG*/
+#define DEBUG_SPI Serial.printf
 
-SPIClass SPI(0); // hardware spi, all other is software
+#define SPI_TYPE (_port == 1)
+
+static uint8_t reverseByte(uint8_t b)
+{
+    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+    b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+    b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+    return b;
+}
+
+SPIClass SPI(1); // hardware spi
 
 SPISettings::SPISettings(uint32_t clockFrequency, BitOrder bitOrder, SPIDataMode dataMode)
 {
-    clock = clockFrequency;
+    clock = clockFrequency / 1000;
     order = bitOrder;
     mode = dataMode;
 }
@@ -40,67 +50,36 @@ SPISettings::SPISettings()
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-void SPIClass::set_hard_pins()
+void SPIClass::setPins(int8_t sck, int8_t miso, int8_t mosi, int8_t cs)
 {
-    _miso = PINNAME_PCM_SYNC; //spi MISO pin, can not change to another pin.
-    _mosi = PINNAME_PCM_OUT;  //spi MOSI pin, can not change to another pin.
-    _clk = PINNAME_PCM_IN;    //spi CLK pin, can not change to another pin.
-    _cs = PINNAME_PCM_CLK;    //spi CS pin, user can change this pin to annother pin.
-    _type = 1;                //spi hardware
-    _port = 0;
+    if (SPI_TYPE)
+    {
+        setPins();
+    }
+    else
+    {
+        //TODO
+    }
+}
+
+void SPIClass::setPins() // HW pins
+{
+    _miso = PINNAME_PCM_SYNC;
+    _mosi = PINNAME_PCM_OUT;
+    _clk = PINNAME_PCM_IN;
+    _cs = PINNAME_PCM_CLK;
 }
 
 SPIClass::SPIClass()
 {
-    set_hard_pins();
+    _port = 1; // HW
+    setPins();
 }
 
 SPIClass::SPIClass(uint32_t port)
 {
-    _port = port;
-    _type = 0;
-    if (0 == port)
-        set_hard_pins();
-}
-
-SPIClass::SPIClass(uint32_t port, int miso, int mosi, int clk, int cs)
-{
-    _port = port;
-    if (0 == port)
-    {
-        set_hard_pins();
-    }
-    else
-    {
-        _type = 0;
-        PinDescription *p;
-
-        p = getArduinoPin(miso);
-        if (p)
-            _miso = (Enum_PinName)p->device;
-
-        p = getArduinoPin(mosi);
-        if (p)
-            _mosi = (Enum_PinName)p->device;
-
-        p = getArduinoPin(clk);
-        if (p)
-            _clk = (Enum_PinName)p->device;
-
-        p = getArduinoPin(cs);
-        if (p)
-        {
-            _cs = (Enum_PinName)p->device;
-            if (PINNAME_PCM_CLK != _cs)                                                // manual cs
-                Ql_GPIO_Init(_cs, PINDIRECTION_OUT, PINLEVEL_HIGH, PINPULLSEL_PULLUP); //CS high
-        }
-    }
-}
-
-void SPIClass::cs(int level)
-{
-    if (PINNAME_PCM_CLK != _cs)
-        Ql_GPIO_SetLevel(_cs, (Enum_PinLevel)level);
+    _port = 1;
+    setPins();
 }
 
 void SPIClass::setBitOrder(BitOrder order)
@@ -114,50 +93,58 @@ void SPIClass::setDataMode(uint8_t mode)
     _cpha = (bool)mode & 1;
 };
 
-void SPIClass::setFrequency(uint32_t frequency)
+void SPIClass::setFrequency(uint32_t kHz)
 {
-    _clock = frequency;
-};
+    _clock = kHz;
+}
 
-/* Initializes the SPI bus by setting SCK,
-   MOSI, and SS to outputs, pulling SCK and
-   MOSI low, and SS high */
+/* nitializes the SPI bus by setting SCK, MOSI, and SS to outputs, pulling SCK and  MOSI low, and SS high */
 void SPIClass::begin()
 {
-    int res = Ql_SPI_Init(_port, _clk, _miso, _mosi, _cs, _type);
-    res = Ql_SPI_Config(_port, /*master*/ 1, _cpol, _cpha, _clock);
+    int res;
+    if ((res = Ql_SPI_Init(_port, _clk, _miso, _mosi, _cs, SPI_TYPE)))
+    {
+        DEBUG_SPI("[ERROR] Ql_SPI_Init( %d )\n", res);
+    }
 }
 
 /* Disables the SPI bus (leaving pin modes unchanged) */
 void SPIClass::end()
 {
     Ql_SPI_Uninit(_port);
-    if (PINNAME_PCM_CLK != _cs)
-        Ql_GPIO_Uninit(_cs);
-}
-
-/* Stop using the SPI bus. Normally this is called after de-asserting the chip select, to allow other libraries to use the SPI bus */
-void SPIClass::endTransaction(void)
-{
-    end();
 }
 
 /* Initializes the SPI bus using the defined SPISettings */
 void SPIClass::beginTransaction(SPISettings settings)
 {
+    int res;
     setFrequency(settings.clock);
     setDataMode(settings.mode);
     setBitOrder(settings.order);
-    begin();
+    if ((res = Ql_SPI_Config(_port, true, _cpol, _cpha, _clock /*kHz*/)))
+    {
+        DEBUG_SPI("[ERROR] Ql_SPI_Config( %d ) %d, %d, %d, %d\n", res, (int)_port, (int)_cpol, (int)_cpha, (int)_clock); // QL_RET_ERR_CHANNEL_NOT_FOUND = -307
+    }
 }
 
 uint8_t SPIClass::transfer(uint8_t tx)
 {
-    // Quectel spi_config.bit_order = HAL_SPI_MASTER_MSB_FIRST = 1;
+    int res;
     uint8_t rx;
+
     if (_order == LSBFIRST)
         tx = __REV(__RBIT(tx));
-    int res = Ql_SPI_WriteRead(_port, &tx, 1, &rx, 1);
+    //if (_order == LSBFIRST) tx = reverseByte(tx);
+
+    if (1 != (res = Ql_SPI_WriteRead(_port, &tx, 1, &rx, 1)))
+    {
+        DEBUG_SPI("[ERROR] Ql_SPI_WriteRead( %d )\n", res);
+    }
+
+    if (_order == LSBFIRST)
+        rx = __REV(__RBIT(rx));
+    //if (_order == LSBFIRST) rx = reverseByte(rx);
+
     return res == 1 ? rx : 0;
 }
 
