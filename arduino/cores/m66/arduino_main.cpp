@@ -19,8 +19,12 @@
 #include "interface.h"
 #include "Dev.h"
 extern DeviceClass Dev;
+
 extern void setup();
 extern void loop();
+
+extern "C"
+{
 
 static struct
 {
@@ -34,7 +38,7 @@ void arduinoSetWait(u32 wait)
     arduino.wait = wait == 0 ? 1 : wait;
 }
 
-static inline void arduinoDispatchMessages(void)
+void arduinoDispatchMessages(void)
 {
     switch (arduino.msg.message)
     {
@@ -49,7 +53,7 @@ static inline void arduinoDispatchMessages(void)
 
 void arduinoProcessMessages(unsigned int wait) // UART, TIMER ... etc process callbacks
 {
-    u32 id = Ql_OS_GetActiveTaskId();
+    uint32_t id = Ql_OS_GetActiveTaskId();
     if (ARDUINO_TASK_ID == id)
     {
         Ql_OS_GetMessage(&arduino.msg);                    // there is always more messages (send one empty message)
@@ -69,16 +73,17 @@ void delayEx(unsigned int ms)
 }
 
 // Arduino Task
-extern "C" void proc_arduino(int id)
+void proc_arduino(int id)
 {
     while (arduino.event == 0)
         Ql_Sleep(10);
     Ql_OS_WaitEvent(arduino.event, 1);                 // block & wait ril ready
 
     Ql_OS_SendMessage(id, MSG_PROCESS_MESSAGES, 0, 0); // send one empty message
-    arduinoProcessMessages(arduino.wait);
 
+    arduinoProcessMessages(arduino.wait);
     setup();
+    
     while (true)
     {
         arduinoProcessMessages(arduino.wait);
@@ -87,7 +92,7 @@ extern "C" void proc_arduino(int id)
 }
 
 // Main Task
-extern "C" void proc_main_task(int taskId)
+void proc_main_task(int taskId)
 {
     ST_MSG m;
     __libc_init_array();
@@ -112,3 +117,5 @@ extern "C" void proc_main_task(int taskId)
         }
     }
 }
+
+} // extern "C"

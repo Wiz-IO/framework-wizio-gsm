@@ -18,8 +18,6 @@
 
 #include "interface.h"
 
-void *_sbrk(int incr) { return (void *)-1; }
-
 extern void (*__preinit_array_start[])(void) __attribute__((weak));
 extern void (*__preinit_array_end[])(void) __attribute__((weak));
 extern void (*__init_array_start[])(void) __attribute__((weak));
@@ -57,12 +55,18 @@ void abort(void)
 {
     while (1)
     {
+        Ql_Sleep(1000);
+#ifdef ABORT_RESET
+        Ql_Reset(0);
+#endif
     }
 }
 
 void __cxa_finalize(void *handle) {}
 void __cxa_pure_virtual(void) { abort(); }
 void __cxa_deleted_virtual(void) { abort(); }
+
+void *_sbrk(int incr) { return (void *)-1; }
 
 void *realloc(void *mem, size_t newsize)
 {
@@ -96,7 +100,7 @@ void *calloc(size_t count, size_t size)
     return NULL;
 }
 
-/////////
+//////////////////////////////////////////////////////////////////////////////
 
 int _isatty(int fd) { return (unsigned int)fd <= STDERR_FILENO; }
 
@@ -129,3 +133,5 @@ _ssize_t _write_r(struct _reent *r, int fd, const void *buf, size_t len)
     errno = (err < 0) ? -err : 0;
     return err;
 }
+
+//////////////////////////////////////////////////////////////////////////////

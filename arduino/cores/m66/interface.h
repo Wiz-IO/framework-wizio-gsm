@@ -102,9 +102,6 @@ extern "C"
 
 #define strtol api_strtol
 #define api_strtoul strtoul
-    ////#define vsnprintf wiz__vsnprintf
-    ////#define rand api_rand
-    ////#define srand api_srand
 
 #define ARDUINO_TASK_ID 3 /* arduino_task_id */
 #define MSG_PROCESS_MESSAGES 0x100
@@ -112,6 +109,8 @@ extern "C"
 
     void __libc_init_array(void);
     void __libc_fini_array(void);
+
+    static inline void yield(void) { Ql_Sleep(1); }
 
 #define CLOSE (1 << 7)
 
@@ -171,11 +170,11 @@ extern "C"
         return __builtin_bswap16(x);
     }
 
-#ifdef __cplusplus
-} // extern "C"
-
 void arduinoSetWait(u32 wait);
 void delayEx(unsigned int ms);
+
+#ifdef __cplusplus
+} // extern "C"
 
 #endif //__cplusplus
 

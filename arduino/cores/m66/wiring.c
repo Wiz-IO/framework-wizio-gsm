@@ -19,8 +19,6 @@
 #include <variant.h>
 #include "hal_ustimer.h"
 
-inline void yield(void) { Ql_Sleep(1); }
-
 inline unsigned int millis() { return Ql_GetMsSincePwrOn(); }
 
 inline unsigned int seconds(void) { return millis() / 1000; }
