@@ -26,13 +26,14 @@
 */
 TwoWire Wire(0);
 
-#define DEBUG_I2C 
+#define DEBUG_I2C
 //Serial.printf
 
 #define HAL_TYPE (0 == i2c_port)
 #define I2C_TYPE_HW (1 == i2c_port)
 
-#define I2C_PULLUP
+////#define I2C_PULLUP
+
 #ifdef I2C_PULLUP
 void I2C_ENABLE_PULLUP()
 {
@@ -119,7 +120,9 @@ void TwoWire::setClock(uint32_t Hz)
 				//abort();
 			}
 			if (I2C_TYPE_HW)
+			{
 				I2C_ENABLE_PULLUP();
+			}
 		}
 	}
 }
