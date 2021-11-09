@@ -37,7 +37,8 @@ extern "C"
     typedef struct
     {
         uint8_t arduino;
-        uint8_t device;
+        uint8_t quectel;
+        uint8_t mediatek;        
         void *eint;
     } PinDescription;
     extern PinDescription pinsMap[MAX_PINS];
