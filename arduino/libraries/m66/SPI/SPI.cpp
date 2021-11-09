@@ -21,8 +21,6 @@
 
 #define DEBUG_SPI Serial.printf
 
-#define SPI_TYPE (_port == 1)
-
 static uint8_t reverseByte(uint8_t b)
 {
     b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
@@ -31,7 +29,11 @@ static uint8_t reverseByte(uint8_t b)
     return b;
 }
 
-SPIClass SPI(1); // hardware spi
+#define SPI_TYPE (_port == 1) // HW SPI
+
+SPIClass SPI(1); // HW SPI
+
+////////////////////////////////////////////////////////////////////////////////////////////
 
 SPISettings::SPISettings(uint32_t clockFrequency, BitOrder bitOrder, SPIDataMode dataMode)
 {
@@ -40,9 +42,8 @@ SPISettings::SPISettings(uint32_t clockFrequency, BitOrder bitOrder, SPIDataMode
     mode = dataMode;
 }
 
-/* default SPI setting */
 SPISettings::SPISettings()
-{
+{ /* default SPI setting */
     clock = 1000;
     order = MSBFIRST;
     mode = SPI_MODE0;
@@ -98,7 +99,6 @@ void SPIClass::setFrequency(uint32_t kHz)
     _clock = kHz;
 }
 
-/* nitializes the SPI bus by setting SCK, MOSI, and SS to outputs, pulling SCK and  MOSI low, and SS high */
 void SPIClass::begin()
 {
     int res;
@@ -108,22 +108,20 @@ void SPIClass::begin()
     }
 }
 
-/* Disables the SPI bus (leaving pin modes unchanged) */
 void SPIClass::end()
 {
     Ql_SPI_Uninit(_port);
 }
 
-/* Initializes the SPI bus using the defined SPISettings */
-void SPIClass::beginTransaction(SPISettings settings)
+void SPIClass::beginTransaction(SPISettings s)
 {
     int res;
-    setFrequency(settings.clock);
-    setDataMode(settings.mode);
-    setBitOrder(settings.order);
+    setFrequency(s.clock);
+    setDataMode(s.mode);
+    setBitOrder(s.order);
     if ((res = Ql_SPI_Config(_port, true, _cpol, _cpha, _clock /*kHz*/)))
     {
-        DEBUG_SPI("[ERROR] Ql_SPI_Config( %d ) %d, %d, %d, %d\n", res, (int)_port, (int)_cpol, (int)_cpha, (int)_clock); // QL_RET_ERR_CHANNEL_NOT_FOUND = -307
+        DEBUG_SPI("[ERROR] Ql_SPI_Config( %d ) %d, %d, %d, %d\n", res, (int)_port, (int)_cpol, (int)_cpha, (int)_clock);
     }
 }
 
