@@ -24,6 +24,7 @@
 #include "variant.h"
 #include "RingBuffer.h"
 #include "hal_i2c.h"
+#include "hal_gpio.h"
 
 #define BUFFER_LENGTH SERIAL_BUFFER_SIZE
 
@@ -55,6 +56,7 @@ public:
     scl = SCL;
     sda = SDA;
   }
+
   void setPins(uint8_t SCL, uint8_t SDA)
   {
     PinDescription *n = getArduinoPin(SCL);

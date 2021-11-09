@@ -19,10 +19,30 @@
 #include <Arduino.h>
 #include "Wire.h"
 
-#define DEBUG_I2C Serial.printf
+/*
+	0: 		HAL Port
+	1: 		Quectel HW
+	2-254 	Quectel SW emulation
+*/
+TwoWire Wire(0);
+
+#define DEBUG_I2C 
+//Serial.printf
 
 #define HAL_TYPE (0 == i2c_port)
-#define I2C_TYPE (1 == i2c_port)
+#define I2C_TYPE_HW (1 == i2c_port)
+
+#define I2C_PULLUP
+#ifdef I2C_PULLUP
+void I2C_ENABLE_PULLUP()
+{
+	GPIO_Setup(GPIO43, GPMODE(GPIO43_MODE_SCL) | GPPULLEN | GPPUP);
+	GPIO_Setup(GPIO44, GPMODE(GPIO44_MODE_SDA) | GPPULLEN | GPPUP);
+	I2C_IO_CONFIG_REG = 4; // 4: bus detect
+}
+#else
+#define I2C_ENABLE_PULLUP()
+#endif
 
 void TwoWire::default_init(uint8_t port)
 {
@@ -50,11 +70,9 @@ void TwoWire::end()
 	}
 }
 
-/* !!! setAddress(x) BEFORE BEGIN, 7 bits !!! */
 void TwoWire::begin(void)
 {
 	int res;
-	end();
 	if (HAL_TYPE)
 	{
 		if ((res = I2C_Open(ctx)))
@@ -64,7 +82,8 @@ void TwoWire::begin(void)
 	}
 	else
 	{
-		if ((res = Ql_IIC_Init(i2c_port, scl, sda, I2C_TYPE)))
+		Ql_IIC_Uninit(i2c_port);
+		if ((res = Ql_IIC_Init(i2c_port, scl, sda, I2C_TYPE_HW)))
 		{
 			DEBUG_I2C("[ERROR] Ql_IIC_Init( %d )\n", res);
 		}
@@ -96,8 +115,11 @@ void TwoWire::setClock(uint32_t Hz)
 		{
 			if ((res = Ql_IIC_Config(i2c_port, true, slaveAddress, i2c_speed)))
 			{
-				DEBUG_I2C("[ERROR] Ql_IIC_Config( %d ) BRG = %d, ADR = 0x%02X\n", res, (int)i2c_speed, (int)slaveAddress); // ??? QL_RET_ERR_IIC_SLAVE_TOO_MANY -310;
+				DEBUG_I2C("[ERROR] Ql_IIC_Config( %d ) BRG = %d, ADR = 0x%02X\n", res, (int)i2c_speed, (int)slaveAddress);
+				//abort();
 			}
+			if (I2C_TYPE_HW)
+				I2C_ENABLE_PULLUP();
 		}
 	}
 }
@@ -124,11 +146,13 @@ uint8_t TwoWire::requestFrom(uint8_t address, size_t size, bool stopBit)
 		{
 			rx._iHead = size;
 			res = rx.available();
+			DEBUG_I2C("[I2C] read[ %d ]\n", (int)size);
 		}
 		else
 		{
-			DEBUG_I2C("[ERROR] i2c read: %d\n", res);
 			res = 0; // error
+			DEBUG_I2C("[ERROR] i2c read: %d\n", res);
+			//abort();
 		}
 	}
 	return res;
@@ -160,12 +184,14 @@ uint8_t TwoWire::endTransmission(bool stopBit)
 
 		if (res == size)
 		{
-			res = 0; // done
+			res = 0;
+			//DEBUG_I2C("[I2C] write[ %d ]\n", (int)size);
 		}
 		else
 		{
-			DEBUG_I2C("[ERROR] i2c write: %d\n", res);
 			res = 4; // error
+			DEBUG_I2C("[ERROR] i2c write: %d %d\n", res, (int)size);
+			//abort();
 		}
 	}
 	return res;
@@ -179,15 +205,14 @@ uint32_t TwoWire::QL_Write(uint8_t *buf, uint32_t len)
 	while (size > 0)
 	{
 		cnt = (size / 8) ? 8 : size; // max size 8 bytes
-		res = Ql_IIC_Write(i2c_port, slaveAddress, buf, cnt);
-		if (res == cnt)
+		if (cnt == (res = Ql_IIC_Write(i2c_port, slaveAddress, buf, cnt)))
 		{
 			buf += cnt;
 			size -= cnt;
 		}
 		else
 		{
-			return res; // ??? QL_RET_ERR_I2CHWFAILED: -34
+			return res; // error
 		}
 	}
 	return len;
@@ -202,8 +227,7 @@ uint32_t TwoWire::QL_Read(uint8_t *buf, uint32_t len)
 	while (size > 0)
 	{
 		cnt = (size / 8) ? 8 : size; // max size 8 bytes
-		res = Ql_IIC_Read(i2c_port, slaveAddress, temp, cnt);
-		if (res == cnt)
+		if (cnt == (res = Ql_IIC_Read(i2c_port, slaveAddress, temp, cnt)))
 		{
 			memcpy(buf, temp, cnt);
 			buf += cnt;
@@ -211,15 +235,8 @@ uint32_t TwoWire::QL_Read(uint8_t *buf, uint32_t len)
 		}
 		else
 		{
-			return res; // ??? QL_RET_ERR_I2CHWFAILED: -34
+			return res; // error
 		}
 	}
 	return len;
 }
-
-/*
-	0: 		HAL Port
-	1: 		Quectel HW
-	2-254 	Quectel SW emulation
-*/
-TwoWire Wire(0);
