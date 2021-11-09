@@ -45,11 +45,12 @@ void analogClose(uint8_t pin)
 
 int analogRead(uint8_t pin)
 {
+  arduinoProcessMessages(1);
   return adc_value; // 0 ~ 2800mV
 }
 
 static void onADC(Enum_ADCPin adcPin, u32 adcValue, void *customParam)
-{
+{ // every second
   adc_value = adcValue;
 }
 
@@ -61,7 +62,7 @@ void analogOpen(uint8_t pin, /* val, src, div */...)
   {
     Enum_ADCPin aPin = (Enum_ADCPin)(pin - PINNAME_END);
     Ql_ADC_Register(aPin, onADC, NULL);
-    Ql_ADC_Init(aPin, 5, 200);
+    Ql_ADC_Init(aPin, 5, 200); // minimal values
     Ql_ADC_Sampling(aPin, true);
   }
   break;
@@ -80,6 +81,5 @@ void analogOpen(uint8_t pin, /* val, src, div */...)
     Ql_PWM_Output((Enum_PinName)pin, val);
   }
   break;
-  
   }
 }
