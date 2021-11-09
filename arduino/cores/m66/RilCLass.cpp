@@ -1,5 +1,6 @@
-
 #include "RilClass.h"
+
+#define DEBUG_RIL Serial.printf
 
 #define RIL_MIN_RESPONSE_OR_URC_WAIT_TIME_MS 20
 
@@ -11,13 +12,37 @@ RilClass::RilClass(HardwareSerial &uart) : _uart(&uart),
     _buffer.reserve(256);
 }
 
-int RilClass::noop()
+bool RilClass::AT()
 {
     send("AT");
     return (waitForResponse() == 1);
 }
 
-int RilClass::single(const char *command)
+bool RilClass::ATI(String *s)
+{
+    send("ATI");
+    return (waitForResponse(RIL_TIMEOUT, s) == 1);
+}
+
+bool RilClass::GSN(String *s)
+{
+    send("AT+GSN");
+    return (waitForResponse(RIL_TIMEOUT, s) == 1);
+}
+
+bool RilClass::CGMM(String *s)
+{
+    send("AT+CGMM");
+    return (waitForResponse(RIL_TIMEOUT, s) == 1);
+}
+
+bool RilClass::CGMI(String *s)
+{
+    send("AT+CGMI");
+    return (waitForResponse(RIL_TIMEOUT, s) == 1);
+}
+
+bool RilClass::single(const char *command)
 {
     send(command);
     return (waitForResponse() == 1);
@@ -55,12 +80,12 @@ int RilClass::waitForResponse(unsigned long timeout, String *responseDataStorage
 {
     _responseDataStorage = responseDataStorage;
     for (unsigned long start = millis(); (millis() - start) < timeout;)
-    {        
-        int r = ready();
-        if (r != 0)
+    {
+        int res = ready();
+        if (res != 0)
         {
             _responseDataStorage = NULL;
-            return r;
+            return res;
         }
     }
     _responseDataStorage = NULL;
@@ -80,14 +105,14 @@ int RilClass::waitForPrompt(unsigned long timeout)
 }
 
 int RilClass::ready()
-{    
-    poll();
+{
+    process();
     return _ready;
 }
 
-void RilClass::poll()
+void RilClass::process()
 {
-    arduinoProcessMessages(50);
+    arduinoProcessMessages(1);
     while (_uart->available())
     {
         char c = _uart->read();
@@ -150,8 +175,8 @@ void RilClass::poll()
             }
             break;
         }
-        } //switch
-    }     //while
+        }
+    }
 }
 
 void RilClass::setResponseDataStorage(String *responseDataStorage)

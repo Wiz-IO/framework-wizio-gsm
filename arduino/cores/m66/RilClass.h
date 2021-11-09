@@ -1,9 +1,10 @@
 #ifndef _RILCLASS_H
 #define _RILCLASS_H
 
-#include <interface.h>
-#include <HardwareSerial.h>
+#include <Arduino.h>
 extern HardwareSerial Virtual1;
+
+#define RIL_TIMEOUT 100
 
 class RilClass
 {
@@ -17,8 +18,13 @@ public:
   }
   void end() { _uart->end(); }
 
-  int noop();
-  int single(const char *command);
+  bool AT();
+  bool ATI(String *s);
+  bool GSN(String *s);
+  bool CGMM(String *s);
+  bool CGMI(String *s);
+
+  bool single(const char *command);
 
   size_t write(uint8_t c);
   size_t write(const uint8_t *, size_t);
@@ -27,16 +33,11 @@ public:
   void send(const String &command) { send(command.c_str()); }
   void sendf(const char *fmt, ...);
 
-  int waitForResponse(unsigned long timeout = 500, String *responseDataStorage = NULL);
-  int waitForPrompt(unsigned long timeout = 500);
+  int waitForResponse(unsigned long timeout = RIL_TIMEOUT, String *responseDataStorage = NULL);
+  int waitForPrompt(unsigned long timeout = RIL_TIMEOUT);
   int ready();
-  void poll();
+  void process();
   void setResponseDataStorage(String *responseDataStorage);
-
-  int SMS_formatText(bool f);
-  int SMS_characterSet(const char *cs);
-  int SMS_begin(const char *to);
-  int SMS_end();
 
 private:
   HardwareSerial *_uart;
