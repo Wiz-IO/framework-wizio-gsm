@@ -18,6 +18,7 @@
 
 #ifndef __VARIANT_H__
 #define __VARIANT_H__
+/* clang-format off */
 
 #include <interface.h>
 
@@ -26,12 +27,15 @@ extern "C"
 {
 #endif
 
-#define LED 0         /* PINNAME_NETLIGHT */
-#define LED_BUILTIN 0 /* PINNAME_NETLIGHT */
+#define LED     0         /* PINNAME_NETLIGHT */
+#define LED_    BUILTIN 0 /* PINNAME_NETLIGHT */
 
-#define PWM0 PINNAME_NETLIGHT /* ONLY ONE PIN */
+typedef enum    { D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12 } e_arduino_pins;
 
-#define ADC0 PINNAME_END /* ONLY ONE PIN */
+#define PWM0    PINNAME_NETLIGHT /* ONLY ONE PIN */
+
+#define ADC0    PINNAME_END /* ONLY ONE PIN */
+#define A0      ADC0 
 
 #define MAX_PINS 13
     typedef struct
@@ -71,5 +75,7 @@ extern DeviceClass Dev;
 #endif
 
 #endif //__cplusplus
+
+/* clang-format on */
 
 #endif /* __VARIANT_H__ */

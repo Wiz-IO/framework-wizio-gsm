@@ -20,18 +20,19 @@
 
 /* clang-format off */
 PinDescription pinsMap[MAX_PINS] = {
-    {0,     PINNAME_NETLIGHT,   0x03,   NULL}, //
-    {1,     PINNAME_DTR,        0x30,   NULL}, //
-    {2,     PINNAME_RI,         0x43,   NULL}, //
-    {3,     PINNAME_DCD,        0x44,   NULL}, //
-    {4,     PINNAME_CTS,        0x14,   NULL}, //
-    {5,     PINNAME_RTS,        0x15,   NULL}, //
-    {6,     PINNAME_RXD_AUX,    0x00,   NULL}, //
-    {7,     PINNAME_TXD_AUX,    0x01,   NULL}, //
-    {8,     PINNAME_PCM_CLK,    0x26,   NULL}, //
-    {9,     PINNAME_PCM_SYNC,   0x29,   NULL}, //
-    {10,    PINNAME_PCM_IN,     0x27,   NULL}, //
-    {11,    PINNAME_PCM_OUT,    0x28,   NULL}, //
-    {12,    PINNAME_RFTXMON,    0x22,   NULL}, //
+//Arduino   Quectel           Mediatek  eint callback
+    {0,     PINNAME_NETLIGHT,   0x03,   NULL},
+    {1,     PINNAME_DTR,        0x30,   NULL},
+    {2,     PINNAME_RI,         0x43,   NULL},
+    {3,     PINNAME_DCD,        0x44,   NULL},
+    {4,     PINNAME_CTS,        0x14,   NULL},
+    {5,     PINNAME_RTS,        0x15,   NULL},
+    {6,     PINNAME_RXD_AUX,    0x00,   NULL},
+    {7,     PINNAME_TXD_AUX,    0x01,   NULL},
+    {8,     PINNAME_PCM_CLK,    0x26,   NULL},
+    {9,     PINNAME_PCM_SYNC,   0x29,   NULL},
+    {10,    PINNAME_PCM_IN,     0x27,   NULL},
+    {11,    PINNAME_PCM_OUT,    0x28,   NULL},
+    {12,    PINNAME_RFTXMON,    0x22,   NULL},
 };
 /* clang-format on */
