@@ -41,7 +41,7 @@ i2c_context_t *I2C_Create(void)
     ctx->config.LoSpeed = 100;
     ctx->config.HiSpeed = 100;
     ctx->config.Delay = 4;
-    ctx->config.IO = 0; //
+    ctx->config.IO = 4; //
     return ctx;
 }
 
