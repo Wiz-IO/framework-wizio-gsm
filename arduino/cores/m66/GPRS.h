@@ -16,9 +16,8 @@ public:
   bool begin();
   bool begin(const char *apn);
   bool begin(const char *apn, const char *name, const char *pass);
-  bool act(); // block mode
+  bool act();
   bool deact(void);
-  bool acted;
 };
 
 extern GPRS gprs;

@@ -1,7 +1,6 @@
 #include <GPRS.h>
 
-#define DEBUG_GPRS 
-//Serial.printf
+#define DEBUG_GPRS Serial.printf
 
 GPRS::GPRS(u8 context)
 {
@@ -19,37 +18,52 @@ GPRS::GPRS(u8 context)
 
 void GPRS::onActive(u8 id, s32 ret, void *gprs)
 {
-    DEBUG_GPRS("[GPRS] onActive( %d %d )", id, ret);
+#if 0
     if (gprs)
     {
         GPRS *p = (GPRS *)gprs;
         p->result = (ret == GPRS_PDP_ALREADY || ret == GPRS_PDP_SUCCESS);
         Ql_OS_SetEvent(p->event, 1);
     }
+#endif
 }
 
-void GPRS::onDeactive(u8 id, s32 ret, void *user)
+void GPRS::onDeactive(u8 id, s32 ret, void *gprs)
 {
-    DEBUG_GPRS("[GPRS] onDeactivedGPRS( %d %d )", id, ret);
+#if 0
+    if (gprs)
+    {
+        GPRS *p = (GPRS *)gprs;
+        p->result = (ret == GPRS_PDP_ALREADY || ret == GPRS_PDP_SUCCESS);
+        Ql_OS_SetEvent(p->event, 2);
+    }
+#endif
 }
 
 bool GPRS::act()
 {
     int res = Ql_GPRS_ActivateEx(id, true); // max 150 sec
-    if (GPRS_PDP_SUCCESS == res || GPRS_PDP_SUCCESS == res)
+    if (GPRS_PDP_SUCCESS == res || res == GPRS_PDP_ALREADY)
+    {
+        DEBUG_GPRS("[GPRS] Ql_GPRS_ActivateEx( DONE )\n");
         return true;
-    DEBUG_GPRS("[GPRS] Ql_GPRS_ActivateEx( %d ) %d", id, res);
-    Ql_OS_WaitEvent(event, 1);
+    }
+    if (GPRS_PDP_WOULDBLOCK == res)
+        Ql_OS_WaitEvent(event, 1);
     return result;
 }
 
 bool GPRS::deact(void)
 {
+    DEBUG_GPRS("[GPRS] Ql_GPRS_Deactivate(-)\n");
     int res = Ql_GPRS_Deactivate(id);
-    if (GPRS_PDP_SUCCESS == res || GPRS_PDP_SUCCESS == res)
+    if (GPRS_PDP_SUCCESS == res || GPRS_PDP_ALREADY == res)
+    {
+        DEBUG_GPRS("[GPRS] Ql_GPRS_Deactivate( DONE )\n");
         return true;
-    DEBUG_GPRS("[GPRS] Ql_GPRS_Deactivate( %d ) %d", id, res); // 2 = GPRS_PDP_WOULDBLOCK
-    Ql_OS_WaitEvent(event, 1);
+    }
+    if (GPRS_PDP_WOULDBLOCK == res)
+        Ql_OS_WaitEvent(event, 2);
     return result;
 }
 

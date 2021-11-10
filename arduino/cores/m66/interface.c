@@ -135,3 +135,22 @@ _ssize_t _write_r(struct _reent *r, int fd, const void *buf, size_t len)
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
+unsigned int *Ql_convertIP(unsigned int ip)
+{
+    static char m_ipAddress[4];
+    unsigned int *p = (unsigned int *)m_ipAddress;
+    *p = ip;
+    return p;
+}
+
+int Ql_inet_aton(const char *cp, uint32_t *ip)
+{
+    if (!ip || !cp)
+        return 0;
+    if (0 == Ql_IpHelper_ConvertIpAddr((u8 *)cp, (u32 *)ip))
+        return 1;
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////

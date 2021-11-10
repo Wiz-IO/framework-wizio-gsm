@@ -170,11 +170,14 @@ extern "C"
         return __builtin_bswap16(x);
     }
 
-void arduinoSetWait(u32 wait);
-void delayEx(unsigned int ms);
+    void arduinoSetWait(u32 wait);
+    void delayEx(unsigned int ms);
 
 #ifdef __cplusplus
 } // extern "C"
+
+#include <IPAddress.h>
+bool getHostByName(const char *host, IPAddress &IP, uint32_t timeout = 10000);
 
 #endif //__cplusplus
 
