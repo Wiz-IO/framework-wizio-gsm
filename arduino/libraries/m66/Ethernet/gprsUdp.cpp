@@ -1,9 +1,25 @@
-/*
-  Udp.cpp - UDP class 
-
-*/
+////////////////////////////////////////////////////////////////////////////////////////
+//
+//      2021 Georgi Angelov
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
 #include "gprsUdp.h"
+
+#define DEBUG_UDP 
+//Serial.printf
 
 #undef write
 #undef read
@@ -42,18 +58,18 @@ uint8_t gprsUDP::begin(IPAddress IP, uint16_t port)
     tx_buffer = new char[UDP_BUFFER_SIZE];
     if (!tx_buffer)
     {
-        DEBUG_UDP("could not create tx buffer");
+        DEBUG_UDP("[ERROR] could not create tx buffer");
         return 0;
     }
     if ((socket = Ql_SOC_Create(id, SOC_TYPE_UDP)) < 0)
     {
-        DEBUG_UDP("could not create socket: %d", socket);
+        DEBUG_UDP("[ERROR] could not create socket: %d", socket);
         return 0;
     }
     int res;
     if ((res = Ql_SOC_Bind(socket, port)) < 0)
     {
-        DEBUG_UDP("could not bind socket: %d", res);
+        DEBUG_UDP("[ERROR] could not bind socket: %d", res);
         stop();
         return 0;
     }
@@ -97,7 +113,7 @@ int gprsUDP::beginPacket()
         tx_buffer = new char[UDP_BUFFER_SIZE];
         if (!tx_buffer)
         {
-            DEBUG_UDP("could not create tx buffer");
+            DEBUG_UDP("[ERROR] could not create tx buffer");
             return 0;
         }
     }
@@ -106,7 +122,7 @@ int gprsUDP::beginPacket()
         return 1; //is already open
     if ((socket = Ql_SOC_Create(id, SOC_TYPE_UDP)) < 0)
     {
-        DEBUG_UDP("could not create socket: %d", socket);
+        DEBUG_UDP("[ERROR] could not create socket: %d", socket);
         return 0;
     }
     return -1;
@@ -124,7 +140,7 @@ int gprsUDP::beginPacket(const char *host, uint16_t port)
     IPAddress IP;
     if (getHostByName(host, IP))
         return beginPacket(IP, port);
-    DEBUG_UDP("could not get host from dns");
+    DEBUG_UDP("[ERROR] could not get host from dns");
     return 0;
 }
 
@@ -133,7 +149,7 @@ int gprsUDP::endPacket()
     int sent = Ql_SOC_SendTo(socket, (unsigned char *)tx_buffer, tx_buffer_len, (unsigned int)Ql_convertIP((uint32_t)remote_ip), remote_port);
     if (sent < 0)
     {
-        DEBUG_UDP("could not send data: %d", sent);
+        DEBUG_UDP("[ERROR] could not send data: %d", sent);
         return 0;
     }
     return 1;
@@ -172,7 +188,6 @@ int gprsUDP::parsePacket()
     if (len < 0)
     {
         delete[] buf;
-        //DEBUG_UDP("could not receive data: %d", len);
         return 0;
     }
     remote_ip = IPAddress((uint32_t)other_ip); // *?
