@@ -21,6 +21,8 @@
 #include "Arduino.h"
 #include <HardwareSerial.h>
 
+extern "C" Enum_SerialPort stdio_port;
+
 void HardwareSerial::callback(Enum_SerialPort port, Enum_UARTEventType event, bool pinLevel, void *serial)
 {
   if (NULL == serial)
@@ -43,23 +45,38 @@ HardwareSerial::HardwareSerial(uint32_t id)
   _rx_buffer_head = _rx_buffer_tail = 0;
 }
 
-void HardwareSerial::begin(unsigned long baud, void *config) // TODO
+void HardwareSerial::begin(unsigned long baud, void *config, bool retarget)
 {
   _rx_buffer_head = _rx_buffer_tail = 0;
   Ql_memset(_rx_buffer, 0, SERIAL_RX_BUFFER_SIZE);
   int res = Ql_UART_Register(port, (CallBack_UART_Notify)this->callback, this);
-  if (config)
-    res = Ql_UART_OpenEx(port, (ST_UARTDCB *)config);
-  else
-    res = Ql_UART_Open(port, baud, FC_NONE);
+  if (0 == res)
+  {
+    if (config)
+    {
+      res = Ql_UART_OpenEx(port, (ST_UARTDCB *)config);
+    }
+    else
+    {
+      res = Ql_UART_Open(port, baud, FC_NONE);
+    }
+    if (0 == res && retarget)
+    {
+      stdio_port = port;
+    }
+  }
 }
 
-void HardwareSerial::begin(unsigned long baud) { begin(baud, NULL); }
+void HardwareSerial::begin(unsigned long baud, bool retarget)
+{
+  begin(baud, NULL, retarget);
+}
 
 void HardwareSerial::end()
 {
   Ql_UART_Close(port);
   _rx_buffer_head = _rx_buffer_tail;
+  stdio_port = UART_PORT_END;
 }
 
 size_t HardwareSerial::write(uint8_t c) { return Ql_UART_Write(port, &c, 1); }
@@ -81,9 +98,13 @@ int HardwareSerial::available(void)
 int HardwareSerial::peek(void)
 {
   if (_rx_buffer_head == _rx_buffer_tail)
+  {
     return -1;
+  }
   else
+  {
     return _rx_buffer[_rx_buffer_tail];
+  }
 }
 
 int HardwareSerial::read(void)
@@ -102,11 +123,11 @@ int HardwareSerial::read(void)
 
 void HardwareSerial::clear(int who)
 {
-  if (who & 0x10)
+  if (who & 2)
   {
     Ql_UART_ClrTxBuffer(port);
   }
-  if (who & 0x01)
+  if (who & 1)
   {
     Ql_UART_ClrRxBuffer(port);
     _rx_buffer_head = _rx_buffer_tail = 0;

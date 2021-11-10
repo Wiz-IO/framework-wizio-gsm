@@ -104,6 +104,12 @@ extern "C"
     {
         ST_MSG m;
         __libc_init_array();
+
+        /* stdio non-buffered */
+        setvbuf(stdout, NULL, _IONBF, 0);
+        setvbuf(stderr, NULL, _IONBF, 0);
+        setvbuf(stdin, NULL, _IONBF, 0);
+
         arduino.event = Ql_OS_CreateEvent((char *)"ARDUINO_EVENT");
         srand(HAL_SEED);
         while (true)

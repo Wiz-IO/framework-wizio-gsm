@@ -38,8 +38,8 @@ protected:
 public:
   int save(uint8_t c);
   HardwareSerial(uint32_t id);
-  void begin(unsigned long baud, void *user);
-  void begin(unsigned long baud);
+  void begin(unsigned long baud, void *user, bool retarget = false);
+  void begin(unsigned long baud, bool retarget = false);
   void end();
   size_t setRxBufferSize(size_t new_size);
   void clear(int who = -1); //ALL, x01=rx, x10=tx 

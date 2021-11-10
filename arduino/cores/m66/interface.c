@@ -75,8 +75,7 @@ void *realloc(void *mem, size_t newsize)
         free(mem);
         return NULL;
     }
-    void *p;
-    p = malloc(newsize);
+    void *p = malloc(newsize);
     if (p)
     {
         if (mem != NULL)
@@ -91,16 +90,18 @@ void *realloc(void *mem, size_t newsize)
 void *calloc(size_t count, size_t size)
 {
     size_t alloc_size = count * size;
-    void *new = malloc(alloc_size);
-    if (new)
+    void *p = malloc(alloc_size);
+    if (p)
     {
-        memset(new, 0, alloc_size);
-        return new;
+        memset(p, 0, alloc_size);
+        return p;
     }
     return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
+Enum_SerialPort stdio_port = UART_PORT_END;
 
 static int fs_file_flags(int flag)
 {
@@ -116,13 +117,20 @@ static int fs_file_flags(int flag)
 
 int _isatty(int fd) { return (unsigned int)fd <= STDERR_FILENO; }
 
-int _fstat_r(struct _reent *r, int fd, struct stat *st) { return -EINVAL; }
+int _fstat_r(struct _reent *ignore, int fd, struct stat *st)
+{
+    int err = -EINVAL;
+    errno = err;
+    return -err;
+}
 
 _off_t _lseek_r(struct _reent *ignore, int fd, _off_t where, int whence)
 { /* only for files */
     int err = -EINVAL;
     if (fd > STDERR_FILENO)
+    {
         err = Ql_FS_Seek(fd - 3, where, whence);
+    }
     errno = (err < 0) ? -err : 0;
     return err;
 }
@@ -132,18 +140,17 @@ int _open_r(struct _reent *ignore, const char *path, int flags, int mode)
     int err = -EINVAL;
     int fd = -1;
     if (path)
+    {
         fd = Ql_FS_Open(path, fs_file_flags(flags));
+    }
     errno = (fd < 0) ? -err : 0;
     return err == 0 ? fd + 3 : -1;
 }
 
-int _close_r(struct _reent *r, int fd)
+int _close_r(struct _reent *ignore, int fd)
 { /* only for files */
     int err = 0;
-    if (_isatty(fd))
-    {
-    }
-    else
+    if (fd > STDERR_FILENO)
     {
         Ql_FS_Close(fd - 3);
     }
@@ -151,17 +158,14 @@ int _close_r(struct _reent *r, int fd)
     return err;
 }
 
-_ssize_t _read_r(struct _reent *r, int fd, void *buf, size_t len)
+_ssize_t _read_r(struct _reent *ignore, int fd, void *buf, size_t len)
 { /* only for files */
     int err = -EINVAL;
-    int bytes = 0;
     if (fd > -1 && buf && len)
     {
-        if (_isatty(fd))
+        if (fd > STDERR_FILENO)
         {
-        }
-        else
-        {
+            int bytes;
             err = Ql_FS_Read(fd - 3, buf, len, &bytes) ? 0 : bytes;
         }
     }
@@ -169,17 +173,18 @@ _ssize_t _read_r(struct _reent *r, int fd, void *buf, size_t len)
     return err;
 }
 
-_ssize_t _write_r(struct _reent *r, int fd, const void *buf, size_t len)
-{ /* only for files */
+_ssize_t _write_r(struct _reent *ignore, int fd, const void *buf, size_t len)
+{ /* only for files & printf */
     int err = -EINVAL;
     if (fd > -1 && buf && len)
     {
-        if (_isatty(fd))
+        if (_isatty(fd) && (stdio_port == UART_PORT1 || stdio_port == UART_PORT2 || stdio_port == UART_PORT3))
         {
+            err = Ql_UART_Write(stdio_port, buf, len);
         }
         else
         {
-            int bytes = 0;
+            int bytes;
             err = Ql_FS_Write(fd - 3, buf, len, &bytes) ? 0 : bytes;
         }
     }
