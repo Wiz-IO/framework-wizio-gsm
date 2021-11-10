@@ -102,34 +102,110 @@ void *calloc(size_t count, size_t size)
 
 //////////////////////////////////////////////////////////////////////////////
 
+static int fs_file_flags(int flag)
+{
+    int result = 0;
+    if ((flag & 3) == O_RDONLY)     //
+        result |= QL_FS_READ_ONLY;  // 0x00000100
+    if ((flag & 3) == O_RDWR)       //
+        result |= QL_FS_READ_WRITE; // 0x00000000
+    if (flag & O_CREAT)             //
+        result |= QL_FS_CREATE;     // 0x00010000
+    return result;
+}
+
 int _isatty(int fd) { return (unsigned int)fd <= STDERR_FILENO; }
 
 int _fstat_r(struct _reent *r, int fd, struct stat *st) { return -EINVAL; }
 
-_off_t _lseek_r(struct _reent *r, int fd, _off_t where, int whence)
-{
+_off_t _lseek_r(struct _reent *ignore, int fd, _off_t where, int whence)
+{ /* only for files */
     int err = -EINVAL;
+    if (fd > STDERR_FILENO)
+        err = Ql_FS_Seek(fd - 3, where, whence);
     errno = (err < 0) ? -err : 0;
     return err;
 }
 
+int _open_r(struct _reent *ignore, const char *path, int flags, int mode)
+{ /* only for files */
+    int err = -EINVAL;
+    int fd = -1;
+    if (path)
+        fd = Ql_FS_Open(path, fs_file_flags(flags));
+    errno = (fd < 0) ? -err : 0;
+    return err == 0 ? fd + 3 : -1;
+}
+
 int _close_r(struct _reent *r, int fd)
-{
+{ /* only for files */
     int err = 0;
-    errno = err;
+    if (_isatty(fd))
+    {
+    }
+    else
+    {
+        Ql_FS_Close(fd - 3);
+    }
+    errno = 0;
     return err;
 }
 
 _ssize_t _read_r(struct _reent *r, int fd, void *buf, size_t len)
-{
+{ /* only for files */
     int err = -EINVAL;
+    int bytes = 0;
+    if (fd > -1 && buf && len)
+    {
+        if (_isatty(fd))
+        {
+        }
+        else
+        {
+            err = Ql_FS_Read(fd - 3, buf, len, &bytes) ? 0 : bytes;
+        }
+    }
     errno = (err < 0) ? -err : 0;
     return err;
 }
 
 _ssize_t _write_r(struct _reent *r, int fd, const void *buf, size_t len)
-{
+{ /* only for files */
     int err = -EINVAL;
+    if (fd > -1 && buf && len)
+    {
+        if (_isatty(fd))
+        {
+        }
+        else
+        {
+            int bytes = 0;
+            err = Ql_FS_Write(fd - 3, buf, len, &bytes) ? 0 : bytes;
+        }
+    }
+    errno = (err < 0) ? -err : 0;
+    return err;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+int rename(const char *Old_Path, const char *New_Path)
+{
+    int err = Ql_FS_Rename(Old_Path, New_Path);
+    errno = (err < 0) ? -err : 0;
+    return err;
+}
+
+int rmdir(const char *path)
+{
+    int err = Ql_FS_CreateDir(path);
+    errno = (err < 0) ? -err : 0;
+    return err;
+}
+
+int mkdir(const char *path, mode_t mode)
+{
+    int err = Ql_FS_CreateDir(path);
     errno = (err < 0) ? -err : 0;
     return err;
 }
