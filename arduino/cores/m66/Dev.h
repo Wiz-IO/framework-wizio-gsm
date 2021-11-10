@@ -3,6 +3,7 @@
 
 #include "interface.h"
 #include "RilClass.h"
+
 extern HardwareSerial Virtual;
 
 typedef void (*vCallback)(void);
@@ -11,16 +12,18 @@ typedef void (*mCallback)(ST_MSG *msg);
 
 class DeviceClass
 {
+private:
+    int nwStatGSM, nwStatGPRS;
+
 public:
     DeviceClass()
     {
         onMessage = NULL;
         onUrc = NULL;
-        wtdID = -1;
+        nwStatGSM = nwStatGPRS = wtdID = -1;
     }
 
     RilClass ril = RilClass(Virtual);
-    RilClass &operator=(RilClass &ril);
     void begin() { ril.begin(); }
 
     mCallback onMessage;      // public
@@ -33,11 +36,50 @@ public:
     uCallback onUrc;              // public
     void m_Urc(u32 urc, u32 data) // private
     {
+        switch (urc)
+        {
+        case URC_GSM_NW_STATE_IND:
+            nwStatGSM = data;
+            break;
+        case URC_GPRS_NW_STATE_IND:
+            nwStatGPRS = data;
+            break;
+        }
         if (onUrc)
             onUrc(urc, data);
     }
+    int getGsmStat() { return nwStatGSM; }
+    bool waitGsmReady(uint32_t timeout_ms = -1)
+    {
+        uint32_t start = millis();
+        while (NW_STAT_REGISTERED != nwStatGSM)
+        {
+            if (NW_STAT_REGISTERED_ROAMING == nwStatGSM)
+                break;
+            arduinoProcessMessages(10);
+            if (millis() - start > timeout_ms)
+                return false; // timeout
+        }
+        arduinoProcessMessages(1);
+        return true;
+    }
 
-    void enterPin(const char *pin);
+    int getGprsStat() { return nwStatGPRS; }
+    bool waitGprsReady(uint32_t timeout_ms = -1)
+    {
+        uint32_t start = millis();
+        while (NW_STAT_REGISTERED != nwStatGPRS)
+        {
+            if (NW_STAT_REGISTERED_ROAMING == nwStatGPRS)
+                break;
+            arduinoProcessMessages(10);
+            if (millis() - start > timeout_ms)
+                return false; // timeout
+        }
+        arduinoProcessMessages(1);
+        return true;
+    }
+
     void reset() { Ql_Reset(0); }
     void powerOff() { Ql_PowerDown(1); }
     int powerReason() { return Ql_GetPowerOnReason(); }

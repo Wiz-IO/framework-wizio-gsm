@@ -26,8 +26,8 @@ void pinMode(uint8_t pin, uint8_t mode)
   {
     if (mode == CLOSE)
     {
-      Ql_GPIO_Uninit(n->device);
-      n->device = PINNAME_END;
+      Ql_GPIO_Uninit(n->quectel);
+      n->quectel = PINNAME_END;
     }
     else
     {
@@ -42,7 +42,7 @@ void pinMode(uint8_t pin, uint8_t mode)
         dir = PINDIRECTION_OUT;
       if (mode & OUTPUT_HI)
         level = PINLEVEL_HIGH;
-      Ql_GPIO_Init(n->device, dir, level, pull);
+      Ql_GPIO_Init(n->quectel, dir, level, pull);
     }
   }
 }
@@ -51,13 +51,13 @@ void digitalWrite(uint8_t pin, uint8_t val)
 {
   PinDescription *n = getArduinoPin(pin);
   if (n)
-    Ql_GPIO_SetLevel(n->device, (Enum_PinLevel)val & 1);
+    Ql_GPIO_SetLevel(n->quectel, (Enum_PinLevel)val & 1);
 }
 
 int digitalRead(uint8_t pin)
 {
   PinDescription *n = getArduinoPin(pin);
   if (n)
-    return Ql_GPIO_GetLevel(n->device);
+    return Ql_GPIO_GetLevel(n->quectel);
   return -1;
 }

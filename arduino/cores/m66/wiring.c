@@ -44,7 +44,7 @@ PinDescription *getArduinoPin(uint8_t arduinoPin)
 PinDescription *getDevicePin(uint8_t devicePin)
 {
   for (int i = 0; i < ARRAYLEN(pinsMap); i++)
-    if (pinsMap[i].device == devicePin)
+    if (pinsMap[i].quectel == devicePin)
       return &pinsMap[i];
   return NULL;
 }
@@ -57,7 +57,7 @@ static void eint_callback(Enum_PinName eintPinName, Enum_PinLevel pinLevel, void
   {
     Ql_EINT_Mask(pin);
     eint_callback_t cb = (eint_callback_t)n->eint;
-    cb(Ql_EINT_GetLevel(n->device));
+    cb(Ql_EINT_GetLevel(n->quectel));
     Ql_EINT_Unmask(pin);
   }
 }
@@ -69,14 +69,14 @@ void eintMode(uint8_t pin, Enum_EintType type, eint_callback_t cb, uint32_t hwDe
   {
     if (type == EINT_CLOSE)
     {
-      Ql_EINT_Uninit(n->device);
+      Ql_EINT_Uninit(n->quectel);
       n->eint = NULL;
     }
     else if (cb)
     {
       n->eint = cb;
-      Ql_EINT_RegisterFast(n->device, eint_callback, (void *)((int)n->device));
-      Ql_EINT_Init(n->device, type, hwDebounce, swDebounce, automask);
+      Ql_EINT_RegisterFast(n->quectel, eint_callback, (void *)((int)n->quectel));
+      Ql_EINT_Init(n->quectel, type, hwDebounce, swDebounce, automask);
     }
   }
 }
