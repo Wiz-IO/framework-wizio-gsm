@@ -67,6 +67,7 @@ extern "C"
 
 #include "WCharacter.h"
 #include "WString.h"
+//#include "IPAddress.h"
 
 /* WMath */
 long random(long);
