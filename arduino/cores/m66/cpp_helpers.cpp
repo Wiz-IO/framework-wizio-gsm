@@ -18,14 +18,11 @@
 
 #include <Arduino.h>
 
-#define DEBUG_DNS
-
 static int dns_Code;
 static IPAddress dns_IP;
 
 static void Callback_GetIpByName(u8 contexId, u8 requestId, s32 errCode, u32 ipAddrCnt, u32 *ipAddr)
 {
-    DEBUG_DNS("CALLBACK = %d, %d", errCode, ipAddrCnt);
     dns_Code = errCode;
     if (errCode == SOC_SUCCESS && ipAddrCnt > 0)
     {
