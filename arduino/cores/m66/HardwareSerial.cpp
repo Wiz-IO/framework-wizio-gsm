@@ -67,9 +67,44 @@ void HardwareSerial::begin(unsigned long baud, void *config, bool retarget)
   }
 }
 
+void HardwareSerial::begin(unsigned long baudrate, int cfg, bool retarget)
+{
+  ST_UARTDCB config;
+  int v;
+  config.baudrate = baudrate;
+  v = (cfg >> 8) & 0xF; // 0x800
+  config.dataBits = (Enum_DataBits)v;
+  v = cfg & 0xF; // 0..4
+  switch (v)
+  {
+  case 0: //none
+    v = PB_NONE;
+    break;
+  case 1: // even
+    v = PB_EVEN;
+    break;
+  case 2: // odd
+    v = PB_ODD;
+    break;
+  case 3: // mark
+    v = PB_MARK;
+    break;
+  case 4: // space
+    v = PB_SPACE;
+    break;
+  default:
+    return;
+  }
+  config.parity = (Enum_ParityBits)v;
+  v = (cfg >> 4) & 0xF;
+  config.stopBits = (Enum_StopBits)v; // 0x10
+  config.flowCtrl = FC_NONE;
+  begin(baudrate, &config, retarget);
+}
+
 void HardwareSerial::begin(unsigned long baud, bool retarget)
 {
-  begin(baud, NULL, retarget);
+  begin(baud, (void *)0, retarget);
 }
 
 void HardwareSerial::end()
@@ -79,15 +114,20 @@ void HardwareSerial::end()
   stdio_port = UART_PORT_END;
 }
 
-size_t HardwareSerial::write(uint8_t c) { return Ql_UART_Write(port, &c, 1); }
+size_t HardwareSerial::write(uint8_t c)
+{
+  int res = Ql_UART_Write(port, &c, 1);
+  return res < 0 ? 0 : res;
+}
 
 size_t HardwareSerial::write(const uint8_t *buf, size_t size)
 {
+  int res = 0;
   if (buf && size)
   {
-    return Ql_UART_Write(port, (uint8_t *)buf, size);
+    res = Ql_UART_Write(port, (uint8_t *)buf, size) < 0 ? 0 : res;
   }
-  return 0;
+  return res;
 }
 
 int HardwareSerial::available(void)
@@ -97,37 +137,27 @@ int HardwareSerial::available(void)
 
 int HardwareSerial::peek(void)
 {
-  if (_rx_buffer_head == _rx_buffer_tail)
-  {
-    return -1;
-  }
-  else
-  {
-    return _rx_buffer[_rx_buffer_tail];
-  }
+  return (_rx_buffer_head == _rx_buffer_tail) ? -1 : _rx_buffer[_rx_buffer_tail];
 }
 
 int HardwareSerial::read(void)
 {
-  if (_rx_buffer_head == _rx_buffer_tail)
+  int c = -1;
+  if (_rx_buffer_head != _rx_buffer_tail)
   {
-    return -1;
-  }
-  else
-  {
-    unsigned char c = _rx_buffer[_rx_buffer_tail];
+    c = _rx_buffer[_rx_buffer_tail];
     _rx_buffer_tail = (buffer_index_t)(_rx_buffer_tail + 1) % SERIAL_RX_BUFFER_SIZE;
-    return c;
   }
+  return c;
 }
 
 void HardwareSerial::clear(int who)
 {
-  if (who & 2)
+  if (who & 0x2)
   {
     Ql_UART_ClrTxBuffer(port);
   }
-  if (who & 1)
+  if (who & 0x1)
   {
     Ql_UART_ClrRxBuffer(port);
     _rx_buffer_head = _rx_buffer_tail = 0;
@@ -151,5 +181,5 @@ HardwareSerial Serial(UART_PORT1);
 HardwareSerial Serial1(UART_PORT2);
 HardwareSerial Serial2(UART_PORT3);
 
-HardwareSerial Virtual(VIRTUAL_PORT1);
-HardwareSerial Virtual1(VIRTUAL_PORT2);
+HardwareSerial Virtual(VIRTUAL_PORT1);  // RIL
+HardwareSerial Virtual1(VIRTUAL_PORT2); // RIL
