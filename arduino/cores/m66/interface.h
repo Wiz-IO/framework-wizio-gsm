@@ -98,6 +98,7 @@ extern "C"
 #define malloc Ql_MEM_Alloc
 #define free Ql_MEM_Free
 
+#include "hal_api.h"
 #include "hal_ustimer.h"
 
 #define strtol api_strtol
