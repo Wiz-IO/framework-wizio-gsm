@@ -41,7 +41,7 @@ i2c_context_t *I2C_Create(void)
     ctx->config.LoSpeed = 100;
     ctx->config.HiSpeed = 100;
     ctx->config.Delay = 4;
-    ctx->config.IO = 4; //
+    ctx->config.IO = 4; //0
     return ctx;
 }
 
@@ -63,10 +63,7 @@ int I2C_Open(i2c_context_t *ctx)
 {
     if (i2c_current_owner || ctx == NULL)
         return -1; // is open
-
-    //begin-protect
     i2c_current_owner = ctx->id;
-    //end-protect
 
     PCTL_PowerUp(PD_I2C);
     I2C_SOFTRESET_REG = 1;
@@ -228,13 +225,11 @@ int I2C_BeginTransaction(i2c_context_t *ctx, I2C_TRANSACTION_TYPE command,
         res = -(sta >> 1);
         goto end;
     }
-
     if (read_buffer && read_len)
     {
         for (int i = 0; i < read_len; ++i)
             *read_buffer++ = I2C_DATA_PORT_REG;
     }
-
 end:
     I2C_INT_STAT_REG = -1;
     return res; // 0 or -error
@@ -244,9 +239,7 @@ uint32_t I2C_Transaction(i2c_context_t *ctx, uint8_t *buf, uint32_t len, bool re
 {
     if (i2c_in_use(ctx) || NULL == buf || 0 == len)
         return -1; // bad params
-
     int size = len, res = -1, cnt;
-
     while (size > 0)
     {
         cnt = (size / 8) ? 8 : size; // max size 8 bytes
@@ -268,6 +261,5 @@ uint32_t I2C_Transaction(i2c_context_t *ctx, uint8_t *buf, uint32_t len, bool re
             return res;
         }
     }
-
     return len;
 }

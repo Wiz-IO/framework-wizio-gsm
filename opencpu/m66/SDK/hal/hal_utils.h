@@ -26,14 +26,10 @@ extern "C"
 
 #include <stdint.h>
 
-    //#define MAX_UL (~1UL + 1)
-
     extern uint32_t CTZ(uint32_t Value);           //From asmutils.s
     extern uint32_t EnableInterrupts(void);        //From asmutils.s
     extern uint32_t DisableInterrupts(void);       //From asmutils.s
     extern void RestoreInterrupts(uint32_t flags); //From asmutils.s
-    extern uint32_t GetCPUFreqTicks(void);         //from asmutils.s
-    extern uint32_t GetCPUFrequency(void);
 
 #ifdef __cplusplus
 }
