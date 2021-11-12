@@ -27,17 +27,22 @@ extern "C"
 {
 #endif
 
-#define LED     0         /* PINNAME_NETLIGHT */
-#define LED_    BUILTIN 0 /* PINNAME_NETLIGHT */
+#define LED             12 /* PINNAME_RFTXMON */
+#define LED_BUILTIN     12 /* PINNAME_RFTXMON */
+#define LED_NET          0 /* PINNAME_NETLIGHT */
 
-typedef enum    { D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12 } e_arduino_pins;
+typedef enum { 
+    D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12 
+} e_arduino_pins;
 
-#define PWM0    PINNAME_NETLIGHT /* ONLY ONE PIN */
+#define ADC0            PINNAME_END /* ONLY ONE PIN [9] */
+#define A0              ADC0
 
-#define ADC0    PINNAME_END /* ONLY ONE PIN */
-#define A0      ADC0 
+#define PWM0            PINNAME_NETLIGHT /* ONLY ONE PIN */
+#define A1              PWM0
 
 #define MAX_PINS 13
+
     typedef struct
     {
         uint8_t arduino;
@@ -47,6 +52,7 @@ typedef enum    { D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12 } e_ardu
     } PinDescription;
     extern PinDescription pinsMap[MAX_PINS];
 
+    // return description form pin
     PinDescription *getArduinoPin(uint8_t arduinoPin);
     PinDescription *getDevicePin(uint8_t devicePin);
 

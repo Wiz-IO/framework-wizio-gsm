@@ -19,20 +19,22 @@
 #include "variant.h"
 
 /* clang-format off */
+
 PinDescription pinsMap[MAX_PINS] = {
-//Arduino   Quectel           Mediatek  eint callback
-    {0,     PINNAME_NETLIGHT,   0x03,   NULL},
-    {1,     PINNAME_DTR,        0x30,   NULL},
-    {2,     PINNAME_RI,         0x43,   NULL},
-    {3,     PINNAME_DCD,        0x44,   NULL},
-    {4,     PINNAME_CTS,        0x14,   NULL},
-    {5,     PINNAME_RTS,        0x15,   NULL},
-    {6,     PINNAME_RXD_AUX,    0x00,   NULL},
-    {7,     PINNAME_TXD_AUX,    0x01,   NULL},
-    {8,     PINNAME_PCM_CLK,    0x26,   NULL},
-    {9,     PINNAME_PCM_SYNC,   0x29,   NULL},
-    {10,    PINNAME_PCM_IN,     0x27,   NULL},
-    {11,    PINNAME_PCM_OUT,    0x28,   NULL},
-    {12,    PINNAME_RFTXMON,    0x22,   NULL},
+//Arduino   Quectel             Mediatek  eint_cb
+    {0,     PINNAME_NETLIGHT,        3,   NULL }, // [16] LED_NET, PWM
+    {1,     PINNAME_DTR,            30,   NULL }, // [19] EINT
+    {2,     PINNAME_RI,             43,   NULL }, // [20] I2C_SCL
+    {3,     PINNAME_DCD,            44,   NULL }, // [21] I2C_SDA
+    {4,     PINNAME_CTS,            14,   NULL }, // [22] 
+    {5,     PINNAME_RTS,            15,   NULL }, // [23]
+    {6,     PINNAME_RXD_AUX,         0,   NULL }, // [28]
+    {7,     PINNAME_TXD_AUX,         1,   NULL }, // [29]
+    {8,     PINNAME_PCM_CLK,        26,   NULL }, // [30] SPI_CS        
+    {9,     PINNAME_PCM_SYNC,       29,   NULL }, // [31] SPI_MISO      
+    {10,    PINNAME_PCM_IN,         27,   NULL }, // [32] SPI_CLK       
+    {11,    PINNAME_PCM_OUT,        28,   NULL }, // [33] SPI_MOSI      
+    {12,    PINNAME_RFTXMON,        22,   NULL }, // [25] LED, AT+QCFG="RFTXburst",1/2
 };
+
 /* clang-format on */
