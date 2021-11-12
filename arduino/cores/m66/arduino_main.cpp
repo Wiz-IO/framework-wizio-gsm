@@ -25,6 +25,7 @@ extern void loop();
 
 extern "C"
 {
+    void api_init(void);
 
     static struct
     {
@@ -102,6 +103,8 @@ extern "C"
     // Main Task
     void proc_main_task(int taskId)
     {
+        api_init();
+
         ST_MSG m;
         __libc_init_array();
 
