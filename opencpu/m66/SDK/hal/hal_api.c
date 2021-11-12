@@ -30,21 +30,23 @@ static hal_api_t HAL_TABLE[API_COUNT] = {
     {
         "M66FAR01A12BT",
         0x100200C0, // FW_VER_ADDR
-
-        0xF026F0F5, // soc_setsockopt()
+                    // !!! +1
+        0xF026F0F5, //oc_setsockopt()
         0xF026EC59, // soc_getsockopt()
 
-        0x100C6CCC, // SSL_CTX_new()
-        0x100C48C4, // SSL_CTX_free()
-        0x100C6C80, // SSL_CTX_use_PrivateKey_file()
-        0x100C6DC8, // SSL_CTX_use_certificate_chain_file()
-        0x100C6BA4, // SSL_new()
-        0x100C500C, // SSL_free()
-        0x100C6BF4, // SSL_set_fd()
-        0x100D33D4, // SSL_connect()
-        0x100CDB68, // SSL_write()
-        0x100C65F0, // SSL_read()
-        0x100C4D14, // SSL_shutdown()
+        0x100C6E1D, // SSL_get_method()
+        0x100C6CCD, // SSL_CTX_new()
+        0x100C48C5, // SSL_CTX_free()
+
+        0x100C6C81, // SSL_CTX_use_PrivateKey_file()
+        0x100C6DC9, // SSL_CTX_use_certificate_chain_file()
+        0x100C6BA5, // SSL_new()
+        0x100C500D, // SSL_free()
+        0x100C6BF5, // SSL_set_fd()
+        0x100D33D5, // SSL_connect()
+        0x100CDB69, // SSL_write()
+        0x100C65F1, // SSL_read()
+        0x100C4D15, // SSL_shutdown()
     },
 };
 #pragma GCC diagnostic pop

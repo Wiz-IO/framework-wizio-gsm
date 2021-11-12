@@ -35,7 +35,8 @@ extern "C"
         int (*soc_setsockopt)(unsigned char, unsigned int, void *, unsigned char);
         int (*soc_getsockopt)(unsigned char, unsigned int, void *, unsigned char);
 
-        void * /*ctx*/ (*SSL_CTX_new)(int method /* 0..1 */);
+        int  (*SSL_get_method)(int);
+        void * /*ctx*/ (*SSL_CTX_new)(int method);
         int (*SSL_CTX_free)(void *ctx);
         int (*SSL_CTX_use_PrivateKey_file)(void *ctx, const char *file_name, int file_type);
         int (*SSL_CTX_use_certificate_chain_file)(void *ctx, const char *file_name);
