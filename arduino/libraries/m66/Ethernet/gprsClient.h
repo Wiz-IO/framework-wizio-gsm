@@ -22,7 +22,8 @@
 #include <Arduino.h>
 #include <Client.h>
 
-#define DEBUG_TCP Serial.printf
+#define DEBUG_TCP 
+//Serial.printf
 
 class gprsClient : public Client
 {
@@ -65,28 +66,30 @@ public:
   {
     if (m_socket > -1)
       return true; // allready
+
+    //DEBUG_TCP("[TCP] ip: %X, port: %d\n", (int)ip, (int)port);
+
     if ((m_socket = Ql_SOC_Create(m_id, SOC_TYPE_TCP)) < 0)
     {
       DEBUG_TCP("[ERROR] TCP Ql_SOC_Create() failed!\n");
       return false;
     }
     int res = Ql_SOC_ConnectEx(m_socket, (uint32_t)Ql_convertIP(ip), port, true); // blocked
-    if (0 == res)
+    if (SOC_SUCCESS == res)
     {
       m_ip = ip;
+      //DEBUG_TCP("[TCP] connected\n");
     }
     else
     {
       m_ip = 0;
       DEBUG_TCP("[ERROR] TCP Ql_SOC_ConnectEx( %d )\n", res);
     }
-    return res == SOC_SUCCESS; // true = OK
+    return SOC_SUCCESS == res; // true = OK
   }
 
   virtual int connect(IPAddress IP, uint16_t port)
   {
-    Serial.print("[TCP] IP: ");
-    Serial.println(IP);
     return connect((uint32_t)IP, port);
   }
 
