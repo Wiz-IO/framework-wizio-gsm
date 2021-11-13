@@ -16,18 +16,17 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _GPRS_TCP_H_
-#define _GPRS_TCP_H_
+#ifndef GPRS_TCP_H
+#define GPRS_TCP_H
 
 #include <Arduino.h>
 #include <Client.h>
 
-#define DEBUG_TCP 
+#define DEBUG_TCP
 //Serial.printf
 
 class gprsClient : public Client
 {
-
 private:
   char m_id;
   int m_socket;
@@ -40,7 +39,7 @@ public:
   {
     m_id = 0;
     m_socket = -1;
-    m_peeked = 0;
+    m_peeked = false;
     m_peek = 0;
   }
 
@@ -48,7 +47,7 @@ public:
   {
     m_id = contextID;
     m_socket = -1;
-    m_peeked = 0;
+    m_peeked = false;
     m_peek = 0;
   }
 
@@ -56,7 +55,7 @@ public:
   {
     m_id = contextID;
     m_socket = socket;
-    m_peeked = 0;
+    m_peeked = false;
     m_peek = 0;
   }
 
@@ -65,27 +64,23 @@ public:
   virtual int connect(uint32_t ip, uint16_t port)
   {
     if (m_socket > -1)
-      return true; // allready
-
-    //DEBUG_TCP("[TCP] ip: %X, port: %d\n", (int)ip, (int)port);
-
+      return true; // already open
     if ((m_socket = Ql_SOC_Create(m_id, SOC_TYPE_TCP)) < 0)
     {
       DEBUG_TCP("[ERROR] TCP Ql_SOC_Create() failed!\n");
-      return false;
+      return false; // error
     }
-    int res = Ql_SOC_ConnectEx(m_socket, (uint32_t)Ql_convertIP(ip), port, true); // blocked
+    int res = Ql_SOC_ConnectEx(m_socket, (uint32_t)Ql_convertIP(ip), port, true); // connect is blocked, socket is SOC_NBIO
     if (SOC_SUCCESS == res)
     {
       m_ip = ip;
-      //DEBUG_TCP("[TCP] connected\n");
     }
     else
     {
       m_ip = 0;
       DEBUG_TCP("[ERROR] TCP Ql_SOC_ConnectEx( %d )\n", res);
     }
-    return SOC_SUCCESS == res; // true = OK
+    return SOC_SUCCESS == res;
   }
 
   virtual int connect(IPAddress IP, uint16_t port)
@@ -104,6 +99,7 @@ public:
   }
 
   int socket() { return m_socket; }
+
   uint32_t ip() { return m_ip; }
 
   virtual void stop()
@@ -124,13 +120,13 @@ public:
       if (m_peeked)
       {
         m_peeked = false;
-        *buf++ = m_peek; // add to buffre
+        *buf++ = m_peek; // add to buffer
         size -= 1;
         cnt = 1;
         if (0 == size)
           return 1;
       }
-      res = Ql_SOC_Recv(m_socket, buf, size); // no wait
+      res = Ql_SOC_Recv(m_socket, buf, size); // socket is SOC_NBIO
       if (cnt)
         return res > -1 ? res + cnt : -1;
       else
@@ -149,14 +145,20 @@ public:
         return m_peek;
       }
       unsigned char data;
-      return (1 == Ql_SOC_Recv(m_socket, &data, 1)) ? data : -1; // no wait
+      return (1 == Ql_SOC_Recv(m_socket, &data, 1)) ? data : -1; // socket is SOC_NBIO
     }
     return -1; // EOF
   }
 
-  virtual size_t write(unsigned char data) { return (m_socket > -1) && (1 == Ql_SOC_Send(m_socket, &data, 1)); }
+  virtual size_t write(unsigned char data)
+  {
+    return (m_socket > -1) && (1 == Ql_SOC_Send(m_socket, &data, 1));
+  }
 
-  virtual size_t write(const unsigned char *buffer, size_t size) { return (m_socket > -1) && (buffer) && (size) && (size == Ql_SOC_Send(m_socket, (u8 *)buffer, size)); }
+  virtual size_t write(const unsigned char *buffer, size_t size)
+  {
+    return (m_socket > -1) && (buffer) && (size) && (size == Ql_SOC_Send(m_socket, (u8 *)buffer, size));
+  }
 
   virtual int available()
   {
@@ -169,12 +171,11 @@ public:
         int res = HAL->soc_getsockopt(m_socket, SOC_NREAD, &val, sizeof(short));
         if (0 == res)
         {
-          //IS OKAY DEBUG_TCP("[ %d ]\n", val);
           return val + m_peeked;
         }
         else
         {
-          DEBUG_TCP("[ERROR] soc_getsockopt()\n");
+          DEBUG_TCP("[ERROR] TCP soc_getsockopt()\n");
         }
         return m_peeked;
       }
@@ -194,18 +195,26 @@ public:
       if ((m_peeked = (1 == Ql_SOC_Recv(m_socket, &m_peek, 1))))
         return m_peek;
     }
-    return -1;
+    return -1; // EOF
   }
 
-  virtual void flush() {}
+  virtual void flush()
+  {
+    while (available() > 0)
+      read();
+  }
 
-  virtual unsigned char connected() { return m_socket > -1; }
+  virtual unsigned char connected()
+  {
+    return m_socket > -1;
+  }
 
-  virtual operator bool() { return connected(); }
-
-  friend class gprsClentSecure;
+  virtual operator bool()
+  {
+    return connected();
+  }
 
   using Print::write;
 };
 
-#endif // _GPRS_TCP_H_
+#endif // GPRS_TCP_H
