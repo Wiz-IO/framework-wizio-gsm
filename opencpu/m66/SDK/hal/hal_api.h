@@ -31,28 +31,12 @@ extern "C"
     {
         char *FW_VER;
         char *FW_VER_ADDR;
-
         int (*soc_setsockopt)(unsigned char, unsigned int, void *, unsigned char);
         int (*soc_getsockopt)(unsigned char, unsigned int, void *, unsigned char);
-
-        int  (*SSL_get_method)(int);
-        void * /*ctx*/ (*SSL_CTX_new)(int method);
-        int (*SSL_CTX_free)(void *ctx);
-        int (*SSL_CTX_use_PrivateKey_file)(void *ctx, const char *file_name, int file_type);
-        int (*SSL_CTX_use_certificate_chain_file)(void *ctx, const char *file_name);
-
-        void * /*ssl*/ (*SSL_new)(void *ctx);
-        int (*SSL_free)(void *ssl);
-        int (*SSL_set_fd)(void *ssl, int soc);
-        int (*SSL_connect)(void *ssl);
-        int (*SSL_write)(void *ssl, const void *data, int sz);
-        int (*SSL_read)(void *ssl, void *data, int sz);
-        int (*SSL_shutdown)(void *ssl);
     } hal_api_t;
 
     extern hal_api_t *HAL;
     void api_init(void);
-
     const char *api_getVersion(void);
 
     typedef enum
