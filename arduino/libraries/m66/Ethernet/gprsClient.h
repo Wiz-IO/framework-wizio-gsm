@@ -22,8 +22,7 @@
 #include <Arduino.h>
 #include <Client.h>
 
-#define DEBUG_TCP
-//Serial.printf
+#define DEBUG_TCP Serial.printf
 
 class gprsClient : public Client
 {
@@ -31,6 +30,7 @@ class gprsClient : public Client
 private:
   char m_id;
   int m_socket;
+  uint32_t m_ip;
   bool m_peeked;
   unsigned char m_peek;
 
@@ -61,32 +61,47 @@ public:
 
   ~gprsClient() { stop(); }
 
-  virtual int connect(unsigned int ip, unsigned short port)
+  virtual int connect(uint32_t ip, uint16_t port)
   {
     if (m_socket > -1)
-      stop();
+      return true; // allready
     if ((m_socket = Ql_SOC_Create(m_id, SOC_TYPE_TCP)) < 0)
     {
-      //DEBUG_TCP("[ERROR] Ql_SOC_Create() failed!\n");
+      DEBUG_TCP("[ERROR] TCP Ql_SOC_Create() failed!\n");
       return false;
     }
-    int res = Ql_SOC_ConnectEx(m_socket, (unsigned int)Ql_convertIP(ip), port, true); // blocked
-    return res == SOC_SUCCESS;                                                        // true = OK
+    int res = Ql_SOC_ConnectEx(m_socket, (uint32_t)Ql_convertIP(ip), port, true); // blocked
+    if (0 == res)
+    {
+      m_ip = ip;
+    }
+    else
+    {
+      m_ip = 0;
+      DEBUG_TCP("[ERROR] TCP Ql_SOC_ConnectEx( %d )\n", res);
+    }
+    return res == SOC_SUCCESS; // true = OK
   }
 
-  virtual int connect(IPAddress IP, unsigned short port) { return connect((uint32_t)IP, port); }
+  virtual int connect(IPAddress IP, uint16_t port)
+  {
+    Serial.print("[TCP] IP: ");
+    Serial.println(IP);
+    return connect((uint32_t)IP, port);
+  }
 
-  virtual int connect(const char *host, unsigned short port)
+  virtual int connect(const char *host, uint16_t port)
   {
     uint32_t ip;
     IPAddress IP;
     if (getHostByName(host, IP))
       return connect(IP, port);
-    //DEBUG_TCP("[ERROR] could not get host from dns\n");
+    DEBUG_TCP("[ERROR] TCP could not get host from dns\n");
     return false;
   }
 
   int socket() { return m_socket; }
+  uint32_t ip() { return m_ip; }
 
   virtual void stop()
   {
@@ -148,8 +163,16 @@ public:
       if (HAL)
       {
         short val;
-        if (0 == HAL->soc_getsockopt(m_socket, SOC_NREAD, &val, sizeof(short)))
+        int res = HAL->soc_getsockopt(m_socket, SOC_NREAD, &val, sizeof(short));
+        if (0 == res)
+        {
+          //IS OKAY DEBUG_TCP("[ %d ]\n", val);
           return val + m_peeked;
+        }
+        else
+        {
+          DEBUG_TCP("[ERROR] soc_getsockopt()\n");
+        }
         return m_peeked;
       }
 #endif
@@ -165,7 +188,6 @@ public:
     {
       if (m_peeked)
         return m_peek;
-
       if ((m_peeked = (1 == Ql_SOC_Recv(m_socket, &m_peek, 1))))
         return m_peek;
     }
@@ -179,7 +201,7 @@ public:
   virtual operator bool() { return connected(); }
 
   friend class gprsClentSecure;
-  
+
   using Print::write;
 };
 
