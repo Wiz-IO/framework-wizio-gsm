@@ -174,6 +174,8 @@ extern "C"
     void arduinoSetWait(u32 wait);
     void delayEx(unsigned int ms);
 
+    void led_blink(int led, int t);
+
 #ifdef __cplusplus
 } // extern "C"
 

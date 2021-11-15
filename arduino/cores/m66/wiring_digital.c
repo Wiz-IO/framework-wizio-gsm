@@ -61,3 +61,11 @@ int digitalRead(uint8_t pin)
     return Ql_GPIO_GetLevel(n->quectel);
   return -1;
 }
+
+void led_blink(int led, int t)
+{
+  digitalWrite(led, 1);
+  delay(t);
+  digitalWrite(led, 0);
+  delay(t);
+}
