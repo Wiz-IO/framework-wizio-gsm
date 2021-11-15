@@ -61,11 +61,11 @@ public:
   {
     PinDescription *n = getArduinoPin(SCL);
     if (n)
-      scl = (Enum_PinName)n->device;
+      scl = (Enum_PinName)n->quectel;
 
     n = getArduinoPin(SDA);
     if (n)
-      sda = (Enum_PinName)n->device;
+      sda = (Enum_PinName)n->quectel;
   }
 
   void setClock(uint32_t Hz);
