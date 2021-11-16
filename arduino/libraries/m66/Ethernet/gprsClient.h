@@ -20,7 +20,9 @@
 #define GPRS_TCP_H
 
 #include <Arduino.h>
+#include <IPAddress.h>
 #include <Client.h>
+#include <RingBuffer.h>
 
 #define DEBUG_TCP
 //Serial.printf

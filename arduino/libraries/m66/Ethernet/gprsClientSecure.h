@@ -25,7 +25,8 @@
 #include <Client.h>
 #include <RingBuffer.h>
 
-#define DEBUG_SSL Serial.printf
+#define DEBUG_SSL 
+//Serial.printf
 
 class gprsClientSecure : public Client
 {
