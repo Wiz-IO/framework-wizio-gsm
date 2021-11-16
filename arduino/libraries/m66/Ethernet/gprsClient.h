@@ -30,54 +30,59 @@ class gprsClient : public Client
 private:
   char m_id;
   int m_socket;
-  uint32_t m_ip;
-  bool m_peeked;
-  unsigned char m_peek;
+  RingBuffer m_rx;
+
+  int internal_read()
+  {
+    while (m_rx.availableForStore() > 0)
+    {
+      uint8_t data;
+      if (1 != Ql_SOC_Recv(m_socket, &data, 1))
+        break;
+      m_rx.store_char(data);
+    }
+    return m_rx.available();
+  }
 
 public:
   gprsClient()
   {
     m_id = 0;
     m_socket = -1;
-    m_peeked = false;
-    m_peek = 0;
   }
 
   gprsClient(int contextID)
   {
     m_id = contextID;
     m_socket = -1;
-    m_peeked = false;
-    m_peek = 0;
   }
 
   gprsClient(int socket, int contextID)
   {
     m_id = contextID;
     m_socket = socket;
-    m_peeked = false;
-    m_peek = 0;
   }
 
   ~gprsClient() { stop(); }
+
+  virtual unsigned char connected()
+  {
+    return m_socket > -1;
+  }
 
   virtual int connect(uint32_t ip, uint16_t port)
   {
     if (m_socket > -1)
       return true; // already open
+    m_rx.clear();
     if ((m_socket = Ql_SOC_Create(m_id, SOC_TYPE_TCP)) < 0)
     {
       DEBUG_TCP("[ERROR] TCP Ql_SOC_Create() failed!\n");
       return false; // error
     }
     int res = Ql_SOC_ConnectEx(m_socket, (uint32_t)Ql_convertIP(ip), port, true); // connect is blocked, socket is SOC_NBIO
-    if (SOC_SUCCESS == res)
+    if (SOC_SUCCESS != res)
     {
-      m_ip = ip;
-    }
-    else
-    {
-      m_ip = 0;
       DEBUG_TCP("[ERROR] TCP Ql_SOC_ConnectEx( %d )\n", res);
     }
     return SOC_SUCCESS == res;
@@ -98,10 +103,6 @@ public:
     return false;
   }
 
-  int socket() { return m_socket; }
-
-  uint32_t ip() { return m_ip; }
-
   virtual void stop()
   {
     if (m_socket > -1)
@@ -109,45 +110,6 @@ public:
       Ql_SOC_Close(m_socket);
       m_socket = -1;
     }
-  }
-
-  virtual int read(unsigned char *buffer, size_t size)
-  {
-    int res, cnt = 0;
-    unsigned char *buf = buffer;
-    if (m_socket > -1 && buffer && size)
-    {
-      if (m_peeked)
-      {
-        m_peeked = false;
-        *buf++ = m_peek; // add to buffer
-        size -= 1;
-        cnt = 1;
-        if (0 == size)
-          return 1;
-      }
-      res = Ql_SOC_Recv(m_socket, buf, size); // socket is SOC_NBIO
-      if (cnt)
-        return res > -1 ? res + cnt : -1;
-      else
-        return res > 0 ? res : -1;
-    }
-    return -1; // EOF
-  }
-
-  virtual int read()
-  {
-    if (m_socket > -1)
-    {
-      if (m_peeked)
-      {
-        m_peeked = false;
-        return m_peek;
-      }
-      unsigned char data;
-      return (1 == Ql_SOC_Recv(m_socket, &data, 1)) ? data : -1; // socket is SOC_NBIO
-    }
-    return -1; // EOF
   }
 
   virtual size_t write(unsigned char data)
@@ -160,59 +122,81 @@ public:
     return (m_socket > -1) && (buffer) && (size) && (size == Ql_SOC_Send(m_socket, (u8 *)buffer, size));
   }
 
-  virtual int available()
+  virtual int read(unsigned char *buffer, size_t size)
+  {
+    int readed = 0;
+    if ((m_socket > -1) && buffer && size)
+    {
+      uint8_t *buf = buffer;
+      while (m_rx.available() > 0 && size--)
+      {
+        *buf++ = m_rx.read_char();
+        readed++;
+      }
+      while (size--)
+      {
+        unsigned char data;
+        if (1 == Ql_SOC_Recv(m_socket, &data, 1))
+        {
+          *buf++ = data;
+          readed++;
+        }
+      }
+    }
+    return readed;
+  }
+
+  virtual int read()
   {
     if (m_socket > -1)
     {
-#ifdef USE_API
-      if (HAL)
-      {
-        short val;
-        int res = HAL->soc_getsockopt(m_socket, SOC_NREAD, &val, sizeof(short));
-        if (0 == res)
-        {
-          return val + m_peeked;
-        }
-        else
-        {
-          DEBUG_TCP("[ERROR] TCP soc_getsockopt()\n");
-        }
-        return m_peeked;
-      }
-#endif
-      peek(); // without soc_getsockopt
-      return m_peeked;
+      if (m_rx.available() > 0)
+        return m_rx.read_char();
+      unsigned char data;
+      return (1 == Ql_SOC_Recv(m_socket, &data, 1)) ? data : EOF;
+    }
+    return EOF;
+  }
+
+  virtual int available() // max RingBuffer[256]
+  {
+    if (m_socket > -1)
+    {
+      int res = m_rx.available();
+      if (res > 0)
+        return res;
+      return internal_read();
     }
     return 0;
   }
 
   virtual int peek()
   {
-    if (m_socket > -1)
+    if ((m_socket > -1))
     {
-      if (m_peeked)
-        return m_peek;
-      if ((m_peeked = (1 == Ql_SOC_Recv(m_socket, &m_peek, 1))))
-        return m_peek;
+      if (m_rx.available() > 0)
+        return m_rx.peek();
+      if (internal_read() > 0)
+        return m_rx.peek();
     }
-    return -1; // EOF
+    return EOF;
   }
 
   virtual void flush()
   {
-    while (available() > 0)
-      read();
+    if ((m_socket > -1))
+    {
+      while (available())
+        read();
+      m_rx.clear();
+    }
   }
 
-  virtual unsigned char connected()
-  {
-    return m_socket > -1;
-  }
-
-  virtual operator bool()
-  {
-    return connected();
-  }
+    operator bool() { return connected(); }
+    bool operator==(const bool value) { return bool() == value; }
+    bool operator!=(const bool value) { return bool() != value; }
+    bool operator==(const gprsClient &);
+    bool operator!=(const gprsClient &r) { return !this->operator==(r); }
 
   using Print::write;
 };
