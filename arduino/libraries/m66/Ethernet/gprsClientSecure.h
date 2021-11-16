@@ -46,8 +46,7 @@ private:
 
     int internal_read()
     {
-        int cnt = m_rx.availableForStore();
-        while (cnt--)
+        while (m_rx.availableForStore() > 0)
         {
             uint8_t data;
             if (1 != HAL->SSL_read(m_ssl, &data, 1))
@@ -262,7 +261,7 @@ public:
         m_rx.clear();
 
         if (NULL == m_client_method)
-            setMethod(TLS_1_2); 
+            setMethod(TLS_1_2);
 
         if (session_create())
         {
@@ -279,7 +278,7 @@ public:
                 goto error;
             }
 
-            res = Ql_SOC_ConnectEx(m_socket, (uint32_t)Ql_convertIP(ip), port, true); 
+            res = Ql_SOC_ConnectEx(m_socket, (uint32_t)Ql_convertIP(ip), port, true);
             if (SOC_SUCCESS != res)
             {
                 DEBUG_SSL("[ERROR] SSL Ql_SOC_ConnectEx( %d )\n", res);
@@ -346,14 +345,12 @@ public:
         int readed = 0;
         if (connected() && buffer && size)
         {
-
             uint8_t *buf = buffer;
             while (m_rx.available() > 0 && size--)
             {
                 *buf++ = m_rx.read_char();
                 readed++;
             }
-
             while (size--)
             {
                 unsigned char data;
@@ -379,7 +376,7 @@ public:
         return EOF;
     }
 
-    int available()
+    int available() // max RingBuffer[256]
     {
         if (HAL && connected())
         {
@@ -427,7 +424,7 @@ public:
     bool operator==(const bool value) { return bool() == value; }
     bool operator!=(const bool value) { return bool() != value; }
     bool operator==(const gprsClientSecure &);
-    bool operator!=(const gprsClientSecure &rhs) { return !this->operator==(rhs); }
+    bool operator!=(const gprsClientSecure &r) { return !this->operator==(r); }
 
     using Print::write;
 };
