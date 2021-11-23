@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-//  Basic driver for ILIxxxx & STxxx LCD displays
+//  Basic driver ( 16 bit Color ) for ILIxxxx & STxxxx LCD displays 
 //  Tested with ST7789 & ILI9341
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -45,9 +45,10 @@ void lcd_reset(const uint8_t *settings);
 
 void lcd_command(uint8_t cmd, uint8_t data_len, ...);
 
+void lcd_block_write_slow(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey);
 void lcd_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey);
 
-void lcd_fill_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t data);
+void lcd_fill_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
 static inline void lcd_fill_color(uint16_t color)
 {
     lcd_fill_rect(0, 0, LCD_X_RESOLUTION - 1, LCD_Y_RESOLUTION - 1, color);

@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-//  Basic driver for ILIxxxx & STxxx LCD displays
+//  Basic driver ( 16 bit Color ) for ILIxxxx & STxxxx LCD displays 
 //  Tested with ST7789 & ILI9341
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -43,24 +43,26 @@ void lcd_data_write(uint8_t data)
 }
 #pragma GCC pop_options
 
-static void lcd_load_settings(const uint8_t *addr)
+static void lcd_load_settings(const uint8_t *p)
 {
-    if (addr)
+    if (p)
     {
         uint16_t ms;
-        uint8_t numArgs, numCommands = *addr++;
+        uint8_t numArgs, numCommands = *p++;
         LCD_SET_TRANSFER_8();
         while (numCommands--)
         {
-            lcd_command_write(*addr++);
-            numArgs = *addr++;
+            LCDIF_SCMD0 = *p++;
+            numArgs = *p++;
             ms = numArgs & LCD_ARGUMENTS;
             numArgs &= ~LCD_ARGUMENTS;
             while (numArgs--)
-                lcd_data_write(*addr++);
+            {
+                LCDIF_SDAT0 = *p++;
+            }
             if (ms)
             {
-                ms = *addr++;
+                ms = *p++;
                 if (ms == 255)
                     ms = 500;
                 delay_m(ms);
@@ -92,19 +94,19 @@ void lcd_init(const uint8_t *settings)
 void lcd_command(uint8_t cmd, uint8_t cnt, ...)
 {
     LCD_SET_TRANSFER_8();
-    lcd_command_write(cmd);
+    LCDIF_SCMD0 = cmd;
     va_list args;
     va_start(args, cnt);
     uint8_t data;
     while (cnt--)
     {
         data = va_arg(args, int);
-        lcd_data_write(data);
+        LCDIF_SDAT0 = data;
     }
     va_end(args);
 }
 
-void lcd_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
+void lcd_block_write_slow(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
 {
     LCD_SET_TRANSFER_8();
     lcd_command_write(CASET);
@@ -120,14 +122,34 @@ void lcd_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
     lcd_command_write(RAMWR);
 }
 
-void lcd_fill_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t data)
+void lcd_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
+{
+    LCD_SET_TRANSFER_8();
+    LCDIF_SCMD0 = CASET;
+
+    LCD_SET_TRANSFER_16();
+    LCDIF_SDAT0 = sx;
+    LCDIF_SDAT0 = ex;
+
+    LCD_SET_TRANSFER_8();
+    LCDIF_SCMD0 = RASET;
+
+    LCD_SET_TRANSFER_16();
+    LCDIF_SDAT0 = sy;
+    LCDIF_SDAT0 = ey;
+
+    LCD_SET_TRANSFER_8();
+    LCDIF_SCMD0 = RAMWR;
+}
+
+void lcd_fill_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
 {
     int size = (x2 - x1 + 1) * (y2 - y1 + 1);
     lcd_block_write(x1, y1, x2, y2);
     LCD_SET_TRANSFER_16();
     while (size--)
     {
-        LCDIF_SDAT0 = data;
+        LCDIF_SDAT0 = color;
     }
 }
 
