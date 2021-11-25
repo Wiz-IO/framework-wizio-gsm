@@ -198,9 +198,9 @@ typedef enum tag_TLCDSCLOCK
 #define LCDIF_W2M                   (1 << 14)   // Enables write to memory
 #define LCDIF_ENC                   (1 << 15)   // Enables command transfer
 #define LCDIF_PERIOD(v)             (((v) & 0x00FF) << 16)
-#define LCDIF_SEND_RES_MODE         (1 << 24)
+#define LCDIF_SEND_RES_MODE         (1 << 24)   // Sends residue odd pixel method
 #define LCDIF_FCNT                  (1 << 26)
-#define LCDIF_L3EN                  (1 << 28)   // Enables layer
+#define LCDIF_L3EN                  (1 << 28)   // Enables layers
 #define LCDIF_L2EN                  (1 << 29)
 #define LCDIF_L1EN                  (1 << 30)
 #define LCDIF_L0EN                  (1UL << 31)
@@ -226,6 +226,7 @@ typedef enum tag_TLCDSCLOCK
 #define LCDIF_WROIROW(v)            (((v) & 0x07FF) << 16)
 
 #define LCDIF_WROI_BGCLR            (*(volatile uint32_t *)(LCDIF_Base + 0x009C))
+// ALFA RED GREEN BLUE
 
 typedef struct tag_LAYER
 {
@@ -357,6 +358,21 @@ typedef union tag_RECT
     };
 } TRECT, *pRECT;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+static inline TPOINT Point(int16_t x, int16_t y)
+{
+    TPOINT Result = {x, y};
+    return Result;
+}
+
+static inline TRECT Rect(int16_t l, int16_t t, int16_t r, int16_t b)
+{
+    TRECT Result = {l, t, r, b};
+    return Result;
+}
+#pragma GCC diagnostic pop
+
 typedef enum tag_CFORMAT
 {
     CF_8IDX,        // 1BPP
@@ -390,6 +406,7 @@ typedef struct tag_TSCREEN
     bool        Initialized;
     TLCONTEXT VLayer[LCDIF_NUMLAYERS];
 } TSCREEN, *pSCREEN;
+extern TSCREEN LCDScreen;
 
 void LCDIF_DisableInterface(void);
 void LCDIF_InitInterface(uint32_t config_clock, uint32_t config_time, uint32_t config_format);

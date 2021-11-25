@@ -14,8 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-//  Basic driver ( 16 bit Color ) for ILIxxxx & STxxxx LCD displays 
+//  Basic driver ( 16 bit Color RGB565 ) for ILIxxxx & STxxxx LCD displays
 //  Tested with ST7789 & ILI9341
+//
+//       Basic mode: RGB565 [ 320 x 240 ] 13 frames per sec
+//    Extended mode: RGB565 [ 320 x 240 ] 45 frames per sec
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -47,9 +50,9 @@ static void lcd_load_settings(const uint8_t *p)
 {
     if (p)
     {
+        LCD_SET_TRANSFER_8();
         uint16_t ms;
         uint8_t numArgs, numCommands = *p++;
-        LCD_SET_TRANSFER_8();
         while (numCommands--)
         {
             LCDIF_SCMD0 = *p++;
@@ -88,7 +91,11 @@ void lcd_init(const uint8_t *settings)
     GPIO_Setup(LCD_RST, GPMODE(0));
     GPIO_SETDIROUT(LCD_RST);
     lcd_reset(settings);
-    //lcd_fill_color(0);
+    lcd_fill(0);
+    delay_m(1000);
+#ifndef LCD_BASIC
+    LCD_EX_INIT();
+#endif
 }
 
 void lcd_command(uint8_t cmd, uint8_t cnt, ...)
@@ -151,17 +158,22 @@ void lcd_fill_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t 
     {
         LCDIF_SDAT0 = color;
     }
+    LCD_SET_TRANSFER_8();
 }
 
-void lcd_draw_imageRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t *data)
+void lcd_draw_image_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t *image)
 {
-    int size = (x2 - x1 + 1) * (y2 - y1 + 1);
-    lcd_block_write(x1, y1, x2, y2);
-    LCD_SET_TRANSFER_16();
-    while (size--)
+    if (image)
     {
-        LCDIF_SDAT0 = *data++;
+        int size = (x2 - x1 + 1) * (y2 - y1 + 1);
+        lcd_block_write(x1, y1, x2, y2);
+        LCD_SET_TRANSFER_16();
+        while (size--)
+        {
+            LCDIF_SDAT0 = *image++;
+        }
     }
+    LCD_SET_TRANSFER_8();
 }
 
 void lcd_draw_pixel(int16_t x, int16_t y, uint16_t color)
@@ -169,4 +181,98 @@ void lcd_draw_pixel(int16_t x, int16_t y, uint16_t color)
     lcd_block_write(x, y, x + 1, y + 1);
     LCD_SET_TRANSFER_16();
     LCDIF_SDAT0 = color;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+#define LAYER_ENABLE_MASK LCDIF_L0EN;
+pLAYER LAYER = (volatile pLAYER) & LCDIF_LAYER0BASE;
+
+extern void Ql_Sleep(uint32_t msec);
+void lcd_ex_run(void)
+{
+    LCDIF_START = 0;
+    LCDIF_START = LCDIF_RUN;
+    while (LCDIF_STA & LCDIF_RUNNING)
+        ; // max 22ms
+    LCDIF_START = 0;
+}
+
+void LCD_EX_INIT(void)
+{
+    LAYER->LCDIF_LWINCON = 0;
+    LAYER->LCDIF_LWINKEY = 0;
+    LAYER->LCDIF_LWINOFFS = 0;
+    LAYER->LCDIF_LWINADD = 0;
+    LAYER->LCDIF_LWINSIZE = 0;
+    LAYER->LCDIF_LWINSCRL = 0;
+    LAYER->LCDIF_LWINMOFS = 0;
+    LAYER->LCDIF_LWINPITCH = 0;
+    LCDIF_WROICON = LCDIF_F_ITF_8B | LCDIF_F_RGB565 | LCDIF_F_BGR;
+    LCDIF_WROICADD = LCDIF_CSIF0;
+    LCDIF_WROIDADD = LCDIF_DSIF0;
+    LCDIF_WROIOFS = 0;
+    LCDIF_WROISIZE = LCDIF_WROICOL(LCD_X_RESOLUTION) | LCDIF_WROIROW(LCD_Y_RESOLUTION);
+    LCDIF_WROI_BGCLR = 0;
+    lcd_ex_run();
+}
+
+uint32_t lcd_ex_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
+{
+#define DATA_LEN 11
+#define H16(v) (((v)&0xFF00) >> 8)
+#define L16(v) ((v)&0xFF)
+    uint32_t data[DATA_LEN];
+    uint32_t *p = data;
+    *p++ = LCDIF_COMM(CASET) | LCDIF_CMD;
+    *p++ = LCDIF_COMM(H16(sx)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(L16(sx)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(H16(ex)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(L16(ex)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(RASET) | LCDIF_CMD;
+    *p++ = LCDIF_COMM(H16(sy)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(L16(sy)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(H16(ey)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(L16(ey)) | LCDIF_DATA;
+    *p++ = LCDIF_COMM(RAMWR) | LCDIF_CMD;
+    uint32_t w = ex - sx + 1;
+    uint32_t h = ey - sy + 1;
+    LCDIF_WROIOFS = LCDIF_WROIOFX(sx) | LCDIF_WROIOFY(sy);
+    LCDIF_WROISIZE = LCDIF_WROICOL(w) | LCDIF_WROIROW(h);
+    p = data;
+    for (int i = 0; i < DATA_LEN; i++)
+        LCDIF_COMD(i) = *p++;
+
+    LCDIF_WROICON &= ~LCDIF_COMMAND_MASK;
+    LCDIF_WROICON |= LCDIF_COMMAND(DATA_LEN - 1) | LCDIF_ENC; // enable command transfer + data
+    return w * h;
+}
+
+void lcd_ex_fill_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color)
+{
+    LCDIF_WROI_BGCLR = ((color & RED) << 8) | ((color & GREEN) << 5) | ((color & BLUE) << 3);
+    LCDIF_WROICON &= ~LAYER_ENABLE_MASK;
+    lcd_ex_block_write(sx, sy, ex, ey);
+    lcd_ex_run();
+}
+
+void lcd_ex_draw_image_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *image)
+{
+    if (image)
+    {
+        uint32_t w = ex - sx + 1;
+        uint32_t h = ey - sy + 1;
+        LAYER->LCDIF_LWINADD = (uint32_t)image;
+        LAYER->LCDIF_LWINCON = LCDIF_LCF(LCDIF_LCF_RGB565) | LCDIF_LROTATE(LCDIF_LR_NO); // | LCDIF_LRGB_SWP;
+        LAYER->LCDIF_LWINOFFS = LCDIF_LWINOF_X(sx) | LCDIF_LWINOF_Y(sy);
+        LAYER->LCDIF_LWINSIZE = LCDIF_LCOLS(w) | LCDIF_LROWS(h);
+        LAYER->LCDIF_LWINPITCH = w * 2;
+        LAYER->LCDIF_LWINSCRL = 0;
+        LAYER->LCDIF_LWINMOFS = 0;
+        LAYER->LCDIF_LWINKEY = 0;
+        LCDIF_WROICON |= LAYER_ENABLE_MASK;
+        lcd_ex_block_write(sx, sy, ex, ey);
+        lcd_ex_run();
+        //LCDIF_WROICON &= ~LAYER_ENABLE_MASK; // cleared in fill()
+    }
 }

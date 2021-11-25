@@ -14,8 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-//  Basic driver ( 16 bit Color ) for ILIxxxx & STxxxx LCD displays 
+//  Basic driver ( 16 bit Color RGB565 ) for ILIxxxx & STxxxx LCD displays
 //  Tested with ST7789 & ILI9341
+//
+//       Basic mode: RGB565 [ 320 x 240 ] 13 frames per sec
+//    Extended mode: RGB565 [ 320 x 240 ] 45 frames per sec
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -25,7 +28,7 @@
 extern "C"
 {
 #endif
-    /* clang-format off */
+  /* clang-format off */
 
 #include <lcd_config.h>
 #include <hal_lcd.h>
@@ -39,25 +42,26 @@ extern "C"
 
 void lcd_command_write(uint8_t command);
 void lcd_data_write(uint8_t data);
-
 void lcd_init(const uint8_t *settings);
 void lcd_reset(const uint8_t *settings);
-
 void lcd_command(uint8_t cmd, uint8_t data_len, ...);
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/* BASIC */
 
 void lcd_block_write_slow(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey);
 void lcd_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey);
 
 void lcd_fill_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
-static inline void lcd_fill_color(uint16_t color)
+static inline void lcd_fill(uint16_t color)
 {
     lcd_fill_rect(0, 0, LCD_X_RESOLUTION - 1, LCD_Y_RESOLUTION - 1, color);
 }
 
-void lcd_draw_imageRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t *data);
-static inline void lcd_draw_image(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *data)
+void lcd_draw_image_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t *image);
+static inline void lcd_draw_image(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *image)
 {
-    lcd_draw_imageRect(x, y, x + w - 1, y + h - 1, data);
+    lcd_draw_image_rect(x, y, x + w - 1, y + h - 1, image);
 }
 
 void lcd_draw_pixel(int16_t x, int16_t y, uint16_t color);
@@ -73,28 +77,56 @@ static inline void lcd_drawtHLine(int16_t x, int16_t y, int16_t w, uint16_t colo
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/* EXTENDED */
 
-/* BASIC INTERFACE */
+void LCD_EX_INIT(void);
+
+void lcd_ex_fill_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color);
+static inline void lcd_ex_fill(uint16_t color)
+{
+    lcd_ex_fill_rect(0, 0, LCD_X_RESOLUTION - 1, LCD_Y_RESOLUTION - 1, color);
+}
+
+void lcd_ex_draw_image_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *image);
+static inline void lcd_ex_draw_image(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *image)
+{
+    lcd_ex_draw_image_rect(x, y, x + w - 1, y + h - 1, image);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+/* INTERFACE */
 
 #define LCD_WRITE_COMMAND       lcd_command_write
 #define LCD_WRITE_DATA          lcd_data_write
-
 #define LCD_INIT                lcd_init
 #define LCD_RESET               lcd_reset
-
 #define LCD_COMMAND             lcd_command
 
+#ifdef LCD_BASIC
+
 #define LCD_BLOCK_WRITE         lcd_block_write
-
 #define LCD_FILL_RECT           lcd_fill_rect
-#define LCD_FILL_COLOR          lcd_fill_color
-
-#define LCD_DRAW_IMAGE_RECT     lcd_draw_imageRect
+#define LCD_FILL                lcd_fill
+#define LCD_DRAW_IMAGE_RECT     lcd_draw_image_rect
 #define LCD_DRAW_IMAGE          lcd_draw_image
-
 #define LCD_DRAW_PIXEL          lcd_draw_pixel
 #define LCD_DRAW_VLINE          lcd_drawVLine
 #define LCD_DRAW_HLINE          lcd_drawtHLine
+
+#else
+
+#define LCD_BLOCK_WRITE         lcd_ex_block_write
+#define LCD_FILL_RECT           lcd_ex_fill_rect
+#define LCD_FILL                lcd_ex_fill
+#define LCD_DRAW_IMAGE_RECT     lcd_ex_draw_image_rect
+#define LCD_DRAW_IMAGE          lcd_ex_draw_image
+#define LCD_DRAW_PIXEL          lcd_ex_draw_pixel
+#define LCD_DRAW_VLINE          lcd_ex_drawVLine
+#define LCD_DRAW_HLINE          lcd_ex_drawtHLine
+
+#endif
+
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
