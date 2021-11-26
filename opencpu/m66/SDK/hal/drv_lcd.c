@@ -17,13 +17,14 @@
 //  Basic driver ( 16 bit Color RGB565 ) for ILIxxxx & STxxxx LCD displays
 //  Tested with ST7789 & ILI9341
 //
-//       Basic mode: RGB565 [ 320 x 240 ] 13 frames per sec
-//    Extended mode: RGB565 [ 320 x 240 ] 45 frames per sec
+//       Basic mode: RGB565 [ 240/320 x 240 ] 20/13 frames per sec
+//    Extended mode: RGB565 [ 240/320 x 240 ] 55/45 frames per sec
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <drv_lcd.h>
 #include <stdarg.h>
+#include <ql_memory.h>
 
 #ifndef LCD_RST
 #define LCD_RST GPIO27 // select gpio
@@ -176,76 +177,55 @@ void lcd_draw_image_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uin
     LCD_SET_TRANSFER_8();
 }
 
-void lcd_draw_pixel(int16_t x, int16_t y, uint16_t color)
-{
-    lcd_block_write(x, y, x + 1, y + 1);
-    LCD_SET_TRANSFER_16();
-    LCDIF_SDAT0 = color;
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////
+#ifndef LCD_BASIC
 
 #define LAYER_ENABLE_MASK LCDIF_L0EN;
 pLAYER LAYER = (volatile pLAYER) & LCDIF_LAYER0BASE;
+#define LCD_BBP sizeof(uint16_t) /* bytes per pixel */
 
-extern void Ql_Sleep(uint32_t msec);
-void lcd_ex_run(void)
+void LCD_RUN(void)
 {
     LCDIF_START = 0;
     LCDIF_START = LCDIF_RUN;
     while (LCDIF_STA & LCDIF_RUNNING)
-        ; // max 22ms
-    LCDIF_START = 0;
+        ; // max ~20ms for full frame
 }
 
 void LCD_EX_INIT(void)
 {
-    LAYER->LCDIF_LWINCON = 0;
-    LAYER->LCDIF_LWINKEY = 0;
-    LAYER->LCDIF_LWINOFFS = 0;
-    LAYER->LCDIF_LWINADD = 0;
-    LAYER->LCDIF_LWINSIZE = 0;
     LAYER->LCDIF_LWINSCRL = 0;
     LAYER->LCDIF_LWINMOFS = 0;
-    LAYER->LCDIF_LWINPITCH = 0;
+    LAYER->LCDIF_LWINKEY = 0;
+    LAYER->LCDIF_LWINCON = LCDIF_LCF(LCDIF_LCF_RGB565) | LCDIF_LROTATE(LCDIF_LR_NO);
     LCDIF_WROICON = LCDIF_F_ITF_8B | LCDIF_F_RGB565 | LCDIF_F_BGR;
     LCDIF_WROICADD = LCDIF_CSIF0;
     LCDIF_WROIDADD = LCDIF_DSIF0;
-    LCDIF_WROIOFS = 0;
     LCDIF_WROISIZE = LCDIF_WROICOL(LCD_X_RESOLUTION) | LCDIF_WROIROW(LCD_Y_RESOLUTION);
+    LCDIF_WROIOFS = 0;
     LCDIF_WROI_BGCLR = 0;
-    lcd_ex_run();
+    // LCD_RUN(); // clear screen
 }
 
-uint32_t lcd_ex_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
+void lcd_ex_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
 {
-#define DATA_LEN 11
 #define H16(v) (((v)&0xFF00) >> 8)
 #define L16(v) ((v)&0xFF)
-    uint32_t data[DATA_LEN];
-    uint32_t *p = data;
-    *p++ = LCDIF_COMM(CASET) | LCDIF_CMD;
-    *p++ = LCDIF_COMM(H16(sx)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(L16(sx)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(H16(ex)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(L16(ex)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(RASET) | LCDIF_CMD;
-    *p++ = LCDIF_COMM(H16(sy)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(L16(sy)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(H16(ey)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(L16(ey)) | LCDIF_DATA;
-    *p++ = LCDIF_COMM(RAMWR) | LCDIF_CMD;
-    uint32_t w = ex - sx + 1;
-    uint32_t h = ey - sy + 1;
-    LCDIF_WROIOFS = LCDIF_WROIOFX(sx) | LCDIF_WROIOFY(sy);
-    LCDIF_WROISIZE = LCDIF_WROICOL(w) | LCDIF_WROIROW(h);
-    p = data;
-    for (int i = 0; i < DATA_LEN; i++)
-        LCDIF_COMD(i) = *p++;
-
+    LCDIF_COMD(0) = LCDIF_COMM(CASET) | LCDIF_CMD;
+    LCDIF_COMD(1) = LCDIF_COMM(H16(sx)) | LCDIF_DATA;
+    LCDIF_COMD(2) = LCDIF_COMM(L16(sx)) | LCDIF_DATA;
+    LCDIF_COMD(3) = LCDIF_COMM(H16(ex)) | LCDIF_DATA;
+    LCDIF_COMD(4) = LCDIF_COMM(L16(ex)) | LCDIF_DATA;
+    LCDIF_COMD(5) = LCDIF_COMM(RASET) | LCDIF_CMD;
+    LCDIF_COMD(6) = LCDIF_COMM(H16(sy)) | LCDIF_DATA;
+    LCDIF_COMD(7) = LCDIF_COMM(L16(sy)) | LCDIF_DATA;
+    LCDIF_COMD(8) = LCDIF_COMM(H16(ey)) | LCDIF_DATA;
+    LCDIF_COMD(9) = LCDIF_COMM(L16(ey)) | LCDIF_DATA;
+    LCDIF_COMD(10) = LCDIF_COMM(RAMWR) | LCDIF_CMD;
     LCDIF_WROICON &= ~LCDIF_COMMAND_MASK;
-    LCDIF_WROICON |= LCDIF_COMMAND(DATA_LEN - 1) | LCDIF_ENC; // enable command transfer + data
-    return w * h;
+    LCDIF_WROICON |= LCDIF_COMMAND(10) | LCDIF_ENC;
+    LCDIF_WROIOFS = LCDIF_WROIOFX(sx) | LCDIF_WROIOFY(sy);
+    LCDIF_WROISIZE = LCDIF_WROICOL(ex - sx + 1) | LCDIF_WROIROW(ey - sy + 1);
 }
 
 void lcd_ex_fill_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color)
@@ -253,7 +233,7 @@ void lcd_ex_fill_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16
     LCDIF_WROI_BGCLR = ((color & RED) << 8) | ((color & GREEN) << 5) | ((color & BLUE) << 3);
     LCDIF_WROICON &= ~LAYER_ENABLE_MASK;
     lcd_ex_block_write(sx, sy, ex, ey);
-    lcd_ex_run();
+    LCD_RUN();
 }
 
 void lcd_ex_draw_image_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *image)
@@ -262,17 +242,31 @@ void lcd_ex_draw_image_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, 
     {
         uint32_t w = ex - sx + 1;
         uint32_t h = ey - sy + 1;
+        uint16_t *mem = NULL;
+        if ((uint32_t)image > 0x10000000u) // the framebuffer must be a malloc() memory
+        {
+            uint32_t size = w * h * LCD_BBP;
+            if (0 == size)
+                return;
+            mem = Ql_MEM_Alloc(size);
+            if (NULL == mem)
+                return;
+            memcpy(mem, image, size);
+            image = mem;
+        }
         LAYER->LCDIF_LWINADD = (uint32_t)image;
-        LAYER->LCDIF_LWINCON = LCDIF_LCF(LCDIF_LCF_RGB565) | LCDIF_LROTATE(LCDIF_LR_NO); // | LCDIF_LRGB_SWP;
         LAYER->LCDIF_LWINOFFS = LCDIF_LWINOF_X(sx) | LCDIF_LWINOF_Y(sy);
         LAYER->LCDIF_LWINSIZE = LCDIF_LCOLS(w) | LCDIF_LROWS(h);
-        LAYER->LCDIF_LWINPITCH = w * 2;
-        LAYER->LCDIF_LWINSCRL = 0;
-        LAYER->LCDIF_LWINMOFS = 0;
-        LAYER->LCDIF_LWINKEY = 0;
+        LAYER->LCDIF_LWINPITCH = w * LCD_BBP;
         LCDIF_WROICON |= LAYER_ENABLE_MASK;
         lcd_ex_block_write(sx, sy, ex, ey);
-        lcd_ex_run();
-        //LCDIF_WROICON &= ~LAYER_ENABLE_MASK; // cleared in fill()
+        LCD_RUN();
+        if (mem)
+        {
+            Ql_MEM_Free(mem);
+        }
     }
 }
+
+#endif
+//////////////////////////////////////////////////////////////////////////////////////////////
