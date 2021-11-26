@@ -35,6 +35,7 @@
 #ifndef __QL_MEMORY_H__
 #define __QL_MEMORY_H__
 
+#include "ql_type.h" //// WizIO
 
 /*****************************************************************
 * Function:     Ql_MEM_Alloc 
