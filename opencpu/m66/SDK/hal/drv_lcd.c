@@ -24,15 +24,22 @@
 
 #include <drv_lcd.h>
 #include <stdarg.h>
-#include <ql_memory.h>
 
-#ifndef LCD_RST
-#define LCD_RST GPIO27 // select gpio
+#define LCD_SCK GPIO26 /* LCDIF LSCK1[ GPIO26 ] */
+#define LCD_SDA GPIO28 /* LCDIF LSDA1[ GPIO28 ] */
+#define LCD_DC GPIO29  /* LCDIF LSA0DA1[ GPIO29 ] */
+#define LCD_CS (-1)    /* LCDIF LSCE_B1[ GPIO27 ] not used ... optional */
+#ifndef LCD_RST        /* LCDIF LSRSTB[ GPIO25 is not available ]  */
+#define LCD_RST GPIO27 /* select gpio */
 #endif
 
-#define LCD_DC GPIO29  // LCDIF LSA0DA1[29]
-#define LCD_SCK GPIO26 // LCDIF LSCK1[26]
-#define LCD_SDA GPIO28 // LCDIF LSDA1[28]
+extern void Ql_Sleep(uint32_t msec);
+extern void *Ql_MEM_Alloc(uint32_t size);
+extern void Ql_MEM_Free(void *ptr);
+
+#define LCD_DELAY Ql_Sleep /* or delay_m() */
+#define LCD_MALLOC Ql_MEM_Alloc
+#define LCD_FREE Ql_MEM_Free
 
 #pragma GCC push_options
 #pragma GCC optimize("O0")
@@ -69,7 +76,7 @@ static void lcd_load_settings(const uint8_t *p)
                 ms = *p++;
                 if (ms == 255)
                     ms = 500;
-                delay_m(ms);
+                LCD_DELAY(ms);
             }
         }
     }
@@ -77,23 +84,41 @@ static void lcd_load_settings(const uint8_t *p)
 
 void lcd_reset(const uint8_t *settings)
 {
+#define RESET_DELAY 500
+#if (LCD_RST == GPIO25)
+    LCDIF_RSTB = LCDIF_RESET0;
+    LCD_DELAY(RESET_DELAY);
+    LCDIF_RSTB = LCDIF_RESET1;
+#else
     GPIO_DATAOUT(LCD_RST, 0);
-    delay_m(200);
+    LCD_DELAY(RESET_DELAY);
     GPIO_DATAOUT(LCD_RST, 1);
+#endif
     lcd_load_settings(settings);
 }
 
 void lcd_init(const uint8_t *settings)
 {
     LCDIF_InitInterface(LCD_CLOCK_MPLL_DIV4, 0, 0);
+
     GPIO_Setup(LCD_SCK, GPMODE(2));
     GPIO_Setup(LCD_SDA, GPMODE(2));
     GPIO_Setup(LCD_DC, GPMODE(2));
+
+#if (LCD_CS == GPIO27) && (LCD_CS != LCD_RST)
+    GPIO_Setup(LCD_CS, GPMODE(2));
+#endif
+
+#if (LCD_RST == GPIO25)
+    GPIO_Setup(LCD_RST, GPMODE(2));
+#else
     GPIO_Setup(LCD_RST, GPMODE(0));
     GPIO_SETDIROUT(LCD_RST);
+#endif
+
     lcd_reset(settings);
-    lcd_fill(0);
-    delay_m(1000);
+    lcd_fill_screen(BLACK);
+
 #ifndef LCD_BASIC
     LCD_EX_INIT();
 #endif
@@ -114,38 +139,18 @@ void lcd_command(uint8_t cmd, uint8_t cnt, ...)
     va_end(args);
 }
 
-void lcd_block_write_slow(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
-{
-    LCD_SET_TRANSFER_8();
-    lcd_command_write(CASET);
-    lcd_data_write(__builtin_bswap16(sx));
-    lcd_data_write(sx);
-    lcd_data_write(__builtin_bswap16(ex));
-    lcd_data_write(ex);
-    lcd_command_write(RASET);
-    lcd_data_write(__builtin_bswap16(sy));
-    lcd_data_write(sy);
-    lcd_data_write(__builtin_bswap16(ey));
-    lcd_data_write(ey);
-    lcd_command_write(RAMWR);
-}
-
 void lcd_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
 {
     LCD_SET_TRANSFER_8();
     LCDIF_SCMD0 = CASET;
-
     LCD_SET_TRANSFER_16();
     LCDIF_SDAT0 = sx;
     LCDIF_SDAT0 = ex;
-
     LCD_SET_TRANSFER_8();
     LCDIF_SCMD0 = RASET;
-
     LCD_SET_TRANSFER_16();
     LCDIF_SDAT0 = sy;
     LCDIF_SDAT0 = ey;
-
     LCD_SET_TRANSFER_8();
     LCDIF_SCMD0 = RAMWR;
 }
@@ -248,7 +253,7 @@ void lcd_ex_draw_image_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, 
             uint32_t size = w * h * LCD_BBP;
             if (0 == size)
                 return;
-            mem = Ql_MEM_Alloc(size);
+            mem = LCD_MALLOC(size);
             if (NULL == mem)
                 return;
             memcpy(mem, image, size);
@@ -263,10 +268,11 @@ void lcd_ex_draw_image_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, 
         LCD_RUN();
         if (mem)
         {
-            Ql_MEM_Free(mem);
+            LCD_FREE(mem);
         }
     }
 }
 
 #endif
+
 //////////////////////////////////////////////////////////////////////////////////////////////

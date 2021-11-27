@@ -69,13 +69,12 @@ void lcd_reset(const uint8_t *settings);
 void lcd_command(uint8_t cmd, uint8_t data_len, ...);
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/* BASIC MODE */
+/* BASIC SW MODE */
 
-void lcd_block_write_slow(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey);
 void lcd_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey);
 
 void lcd_fill_rect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
-static inline void lcd_fill(uint16_t color)
+static inline void lcd_fill_screen(uint16_t color)
 {
     lcd_fill_rect(0, 0, LCD_X_RESOLUTION - 1, LCD_Y_RESOLUTION - 1, color);
 }
@@ -87,7 +86,7 @@ static inline void lcd_draw_image(int16_t x, int16_t y, int16_t w, int16_t h, ui
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/* EXTENDED MODE */
+/* EXTENDED DMA MODE */
 
 void LCD_EX_INIT();
 void LCD_RUN(void);
@@ -95,7 +94,7 @@ void LCD_RUN(void);
 void lcd_ex_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey);
 
 void lcd_ex_fill_rect(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color);
-static inline void lcd_ex_fill(uint16_t color)
+static inline void lcd_ex_fill_screen(uint16_t color)
 {
     lcd_ex_fill_rect(0, 0, LCD_X_RESOLUTION - 1, LCD_Y_RESOLUTION - 1, color);
 }
@@ -119,7 +118,7 @@ static inline void lcd_ex_draw_image(int16_t x, int16_t y, int16_t w, int16_t h,
 
 #define LCD_BLOCK_WRITE         lcd_block_write
 #define LCD_FILL_RECT           lcd_fill_rect
-#define LCD_FILL                lcd_fill
+#define LCD_FILL_SCREEN         lcd_fill_screen
 #define LCD_DRAW_IMAGE_RECT     lcd_draw_image_rect
 #define LCD_DRAW_IMAGE          lcd_draw_image
 
@@ -127,7 +126,7 @@ static inline void lcd_ex_draw_image(int16_t x, int16_t y, int16_t w, int16_t h,
 
 #define LCD_BLOCK_WRITE         lcd_ex_block_write
 #define LCD_FILL_RECT           lcd_ex_fill_rect
-#define LCD_FILL                lcd_ex_fill
+#define LCD_FILL_SCREEN         lcd_ex_fill_screen
 #define LCD_DRAW_IMAGE_RECT     lcd_ex_draw_image_rect
 #define LCD_DRAW_IMAGE          lcd_ex_draw_image
 
