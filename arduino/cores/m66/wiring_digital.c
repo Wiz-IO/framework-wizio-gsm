@@ -62,10 +62,24 @@ int digitalRead(uint8_t pin)
   return -1;
 }
 
-void led_blink(int led, int t)
+////////////////////////////////////////////////////////////////////////////////////////
+
+void led_blink(int led, int delay_ms)
 {
   digitalWrite(led, 1);
-  delay(t);
+  Ql_Sleep(delay_ms);
   digitalWrite(led, 0);
-  delay(t);
+  Ql_Sleep(delay_ms);
+}
+
+void pinModeEx(uint8_t mtk_gpio, uint8_t mtk_mode, uint8_t dir)
+{
+  GPIO_Setup(mtk_gpio, GPMODE(mtk_mode));
+  if (0 == mtk_mode)
+  {
+    if (OUTPUT == dir)
+      GPIO_SETDIROUT(mtk_gpio);
+    else
+      GPIO_SETDIRIN(mtk_gpio);
+  }
 }

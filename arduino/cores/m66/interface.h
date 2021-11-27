@@ -100,6 +100,7 @@ extern "C"
 
 #include "hal_api.h"
 #include "hal_ustimer.h"
+#include "hal_gpio.h"
 
 #define strtol api_strtol
 #define api_strtoul strtoul
@@ -111,8 +112,6 @@ extern "C"
     void __libc_init_array(void);
     void __libc_fini_array(void);
 
-    static inline void yield(void) { Ql_Sleep(1); }
-
 #define CLOSE (1 << 7)
 
     unsigned int seconds(void);
@@ -120,6 +119,8 @@ extern "C"
     unsigned int micros(void);
     void delay(unsigned int);
     void delayMicroseconds(unsigned int us);
+
+    static inline void yield(void) { delay(1); }
 
     extern char *utoa(unsigned int value, char *buffer, int radix);
     static inline char *ltoa(long value, char *result, int base) { return utoa(value, result, base); }
@@ -135,6 +136,11 @@ extern "C"
 #ifndef SERIAL_BUFFER_SIZE
 #define SERIAL_BUFFER_SIZE 256
 #endif
+
+    void led_blink(int led, int delay_ms);
+    void pinModeEx(uint8_t mtk_gpio, uint8_t mtk_mode, uint8_t dir);
+    static inline void digitalWriteEx(uint8_t mtk_gpio, bool val) { GPIO_DATAOUT(mtk_gpio, val); }
+    static inline int digitalReadEx(uint8_t mtk_gpio) { return GPIO_DATAIN(mtk_gpio); }
 
 #define digitalPinToPort(p) -1
 #define digitalPinToBitMask(p) -1
@@ -173,8 +179,6 @@ extern "C"
 
     void arduinoSetWait(u32 wait);
     void delayEx(unsigned int ms);
-
-    void led_blink(int led, int t);
 
 #ifdef __cplusplus
 } // extern "C"
