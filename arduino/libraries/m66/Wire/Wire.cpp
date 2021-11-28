@@ -93,8 +93,8 @@ void TwoWire::begin(void)
 }
 
 /* 
-Only for HW, 
-	for SW the baudrate is ignored 
+	Only for HW, 
+		for SW the baudrate is ignored 
 */
 void TwoWire::setClock(uint32_t Hz)
 {
@@ -117,7 +117,6 @@ void TwoWire::setClock(uint32_t Hz)
 			if ((res = Ql_IIC_Config(i2c_port, true, slaveAddress, i2c_speed)))
 			{
 				DEBUG_I2C("[ERROR] Ql_IIC_Config( %d ) BRG = %d, ADR = 0x%02X\n", res, (int)i2c_speed, (int)slaveAddress);
-				//abort();
 			}
 			if (I2C_TYPE_HW)
 			{
@@ -128,8 +127,8 @@ void TwoWire::setClock(uint32_t Hz)
 }
 
 /* 
-Return: 
-	the number of bytes returned from the slave device
+	Return: 
+		the number of bytes returned from the slave device
 */
 uint8_t TwoWire::requestFrom(uint8_t address, size_t size, bool stopBit)
 {
@@ -162,12 +161,12 @@ uint8_t TwoWire::requestFrom(uint8_t address, size_t size, bool stopBit)
 }
 
 /*	
-Return:
-	0: success
-	1: data too long to fit in transmit buffer
-	2: received NACK on transmit of address
-	3: received NACK on transmit of data
-	4: other error
+	Return:
+		0: success
+		1: data too long to fit in transmit buffer
+		2: received NACK on transmit of address
+		3: received NACK on transmit of data
+		4: other error
 */
 uint8_t TwoWire::endTransmission(bool stopBit)
 {
@@ -194,7 +193,6 @@ uint8_t TwoWire::endTransmission(bool stopBit)
 		{
 			res = 4; // error
 			DEBUG_I2C("[ERROR] i2c write: %d %d\n", res, (int)size);
-			//abort();
 		}
 	}
 	return res;
