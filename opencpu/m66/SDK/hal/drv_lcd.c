@@ -116,12 +116,13 @@ void lcd_init(const uint8_t *settings)
     GPIO_SETDIROUT(LCD_RST);
 #endif
 
-    lcd_reset(settings);
-    lcd_fill_screen(BLACK);
+    lcd_reset(settings); // lcd_fill_screen(BLACK);
 
 #ifndef LCD_BASIC
     LCD_EX_INIT();
 #endif
+
+    LCD_FILL_SCREEN(BLACK);
 }
 
 void lcd_command(uint8_t cmd, uint8_t cnt, ...)
@@ -206,15 +207,14 @@ void LCD_EX_INIT(void)
     LCDIF_WROICON = LCDIF_F_ITF_8B | LCDIF_F_RGB565 | LCDIF_F_BGR;
     LCDIF_WROICADD = LCDIF_CSIF0;
     LCDIF_WROIDADD = LCDIF_DSIF0;
-    LCDIF_WROISIZE = LCDIF_WROICOL(LCD_X_RESOLUTION) | LCDIF_WROIROW(LCD_Y_RESOLUTION);
+    LCDIF_WROISIZE = 0;
     LCDIF_WROIOFS = 0;
     LCDIF_WROI_BGCLR = 0;
-    // LCD_RUN(); // clear screen
 }
 
 void lcd_ex_block_write(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
 {
-#define H16(v) (((v)&0xFF00) >> 8)
+#define H16(v) (__builtin_bswap16(v) & 0xFF) // (((v)&0xFF00) >> 8)
 #define L16(v) ((v)&0xFF)
     LCDIF_COMD(0) = LCDIF_COMM(CASET) | LCDIF_CMD;
     LCDIF_COMD(1) = LCDIF_COMM(H16(sx)) | LCDIF_DATA;
