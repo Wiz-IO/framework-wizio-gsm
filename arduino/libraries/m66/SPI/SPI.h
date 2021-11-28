@@ -21,20 +21,6 @@
 
 #include <Arduino.h>
 
-/*
-
-QUECTEL OpenCPU
-
-typedef enum
-{
-    HAL_SPI_MASTER_LSB_FIRST = 0x0,
-    HAL_SPI_MASTER_MSB_FIRST = 0x1,
-} hal_spi_master_bit_order_t;
-
-spi_config.bit_order = HAL_SPI_MASTER_MSB_FIRST = 0x1;
-
-*/
-
 typedef enum
 {
   SPI_MODE0 = 0,
@@ -46,9 +32,7 @@ typedef enum
 class SPISettings
 {
 public:
-  SPISettings(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
-  { /*todo*/
-  }
+  SPISettings(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)  { /*todo*/  }
   SPISettings(uint32_t clockFrequency, BitOrder bitOrder, SPIDataMode dataMode);
   SPISettings();
 

@@ -19,7 +19,8 @@
 #include <Arduino.h>
 #include "SPI.h"
 
-#define DEBUG_SPI Serial.printf
+#define DEBUG_SPI 
+//Serial.printf
 
 static uint8_t reverseByte(uint8_t b)
 {
@@ -133,16 +134,13 @@ uint8_t SPIClass::transfer(uint8_t tx)
     if (_order == LSBFIRST)
         tx = __REV(__RBIT(tx));
     //if (_order == LSBFIRST) tx = reverseByte(tx);
-
     if (1 != (res = Ql_SPI_WriteRead(_port, &tx, 1, &rx, 1)))
     {
         DEBUG_SPI("[ERROR] Ql_SPI_WriteRead( %d )\n", res);
     }
-
     if (_order == LSBFIRST)
         rx = __REV(__RBIT(rx));
     //if (_order == LSBFIRST) rx = reverseByte(rx);
-
     return res == 1 ? rx : 0;
 }
 
