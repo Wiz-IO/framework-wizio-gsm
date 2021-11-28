@@ -105,37 +105,34 @@ extern "C"
 #define strtol api_strtol
 #define api_strtoul strtoul
 
-#define ARDUINO_TASK_ID 3 /* arduino_task_id */
-#define MSG_PROCESS_MESSAGES 0x100
-    void arduinoProcessMessages(unsigned int wait);
-
     void __libc_init_array(void);
     void __libc_fini_array(void);
 
 #define CLOSE (1 << 7)
 
+#define ARDUINO_TASK_ID 3 /* arduino_task_id */
+#define MSG_PROCESS_MESSAGES 0x100
+    void arduinoProcessMessages(unsigned int wait);
+    void arduinoSetWait(u32 wait);
+
     unsigned int seconds(void);
     unsigned int millis(void);
     unsigned int micros(void);
     void delay(unsigned int);
+    void delayEx(unsigned int ms);    
     void delayMicroseconds(unsigned int us);
-
     static inline void yield(void) { delay(1); }
-
-    extern char *utoa(unsigned int value, char *buffer, int radix);
-    static inline char *ltoa(long value, char *result, int base) { return utoa(value, result, base); }
-    static inline char *ultoa(unsigned long value, char *result, int base) { return utoa(value, result, base); }
 
     uint32_t clockCyclesPerMicrosecond(void);
     uint32_t clockCyclesToMicroseconds(uint32_t a);
     uint32_t microsecondsToClockCycles(uint32_t a);
 
+    extern char *utoa(unsigned int value, char *buffer, int radix);
+    static inline char *ltoa(long value, char *result, int base) { return utoa(value, result, base); }
+    static inline char *ultoa(unsigned long value, char *result, int base) { return utoa(value, result, base); }
+
     unsigned int *Ql_convertIP(unsigned int ip);
     int Ql_inet_aton(const char *cp, uint32_t *ip);
-
-#ifndef SERIAL_BUFFER_SIZE
-#define SERIAL_BUFFER_SIZE 256
-#endif
 
     void led_blink(int led, int delay_ms);
     void pinModeEx(uint8_t mtk_gpio, uint8_t mtk_mode, uint8_t dir);
@@ -177,8 +174,9 @@ extern "C"
         return __builtin_bswap16(x);
     }
 
-    void arduinoSetWait(u32 wait);
-    void delayEx(unsigned int ms);
+#ifndef SERIAL_BUFFER_SIZE
+#define SERIAL_BUFFER_SIZE 256
+#endif
 
 #ifdef __cplusplus
 } // extern "C"

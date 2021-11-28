@@ -18,7 +18,8 @@
 
 #include "RilClass.h"
 
-#define DEBUG_RIL Serial.printf
+#define DEBUG_RIL 
+//Serial.printf
 
 #define RIL_MIN_RESPONSE_OR_URC_WAIT_TIME_MS 20
 
