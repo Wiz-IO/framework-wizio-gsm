@@ -41,7 +41,7 @@ typedef enum {
 #define PWM0            PINNAME_NETLIGHT /* ONLY ONE PIN */
 #define A1              PWM0
 
-#define MAX_PINS 13
+#define MAX_PINS        (13 + 2)
 
     typedef struct
     {
@@ -52,7 +52,6 @@ typedef enum {
     } PinDescription;
     extern PinDescription pinsMap[MAX_PINS];
 
-    // return description form pin
     PinDescription *getArduinoPin(uint8_t arduinoPin);
     PinDescription *getDevicePin(uint8_t devicePin);
 
@@ -75,13 +74,7 @@ extern HardwareSerial Serial2;
 extern HardwareSerial Virtual;  // RIL
 extern HardwareSerial Virtual1; // RIL
 
-#if 0
-#include <DEV.h>
-extern DeviceClass Dev;
-#endif
-
 #endif //__cplusplus
 
 /* clang-format on */
-
 #endif /* __VARIANT_H__ */
