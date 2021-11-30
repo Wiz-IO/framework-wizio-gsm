@@ -22,11 +22,11 @@
 extern "C"
 {
 #endif
-/* clang-format off */
+  /* clang-format off */
 
 #include "hal_pctl.h"
 
-#define G2D_base					                          (0xA0440000) /* G2D - Graphic 2D */ 
+#define G2D_base                                    (0xA0440000) /* G2D - Graphic 2D */ 
 
 #define REG_G2D_START                               *(volatile uint16_t *)(G2D_base + 0x0000)
 #define REG_G2D_MODE_CTRL                           *(volatile uint32_t *)(G2D_base + 0x0004)
@@ -102,6 +102,8 @@ extern "C"
 #define G2D_LX_CON_COLOR_MASK                       0x1F
 
 
+#define G2D_LX_CON_CONSTANT_ALPHA_MASK              0xFF00
+#define G2D_LX_CON_ALPHA_ENABLE_BIT                 0x80
 #define G2D_LX_CON_CCW_ROTATE_MASK                  0x70000
 #define G2D_LX_CON_CCW_ROTATE_000                   0x00000
 #define G2D_LX_CON_CCW_ROTATE_MIRROR_090            0x10000
@@ -116,116 +118,151 @@ extern "C"
 ////////////////////////////////////////////////////////////////////////////
 
 
-#define G2D_HARD_RESET()                            \
-  do {                                              \
-    REG_G2D_RESET = 0;                              \
-    REG_G2D_RESET = G2D_RESET_HARD_RESET_BIT ;      \
-    REG_G2D_RESET = 0;                              \
-  } while(0)
+#define G2D_HARD_RESET()                      \
+  do                                          \
+  {                                           \
+    REG_G2D_RESET = 0;                        \
+    REG_G2D_RESET = G2D_RESET_HARD_RESET_BIT; \
+    REG_G2D_RESET = 0;                        \
+  } while (0)
 
+#define G2D_SET_W2M_ADDR(addr) \
+  do                           \
+  {                            \
+    REG_G2D_W2M_ADDR = addr;   \
+  } while (0)
 
-#define G2D_SET_W2M_ADDR(addr)                      \
-  do {                                              \
-    REG_G2D_W2M_ADDR = addr;                        \
-  } while(0)
+#define G2D_SET_W2M_PITCH(pitch) \
+  do                             \
+  {                              \
+    REG_G2D_W2M_PITCH = pitch;   \
+  } while (0)
 
+#define G2D_SET_W2M_OFFSET(x, y)                                                  \
+  do                                                                              \
+  {                                                                               \
+    REG_G2D_W2M_OFFSET = (((uint16_t)(x)&0xFFFF) << 16) | ((uint16_t)(y)&0xFFFF); \
+  } while (0)
 
-#define G2D_SET_W2M_PITCH(pitch)                    \
-  do {                                              \
-    REG_G2D_W2M_PITCH = pitch;                      \
-  } while(0)
+#define G2D_SET_W2M_COLOR_FORMAT(format)                      \
+  do                                                          \
+  {                                                           \
+    REG_G2D_ROI_CON &= ~G2D_ROI_CON_W2M_COLOR_MASK;           \
+    REG_G2D_ROI_CON |= (format & G2D_ROI_CON_W2M_COLOR_MASK); \
+  } while (0)
 
+  ///// Region Of Interest (ROI)
 
-#define G2D_SET_W2M_OFFSET(x, y)                                                        \
-  do {                                                                                  \
-    REG_G2D_W2M_OFFSET = (((uint16_t)(x) & 0xFFFF)<< 16) | ((uint16_t)(y) & 0xFFFF);    \
-  } while(0)
+#define G2D_SET_ROI_CON_BG_COLOR(color) \
+  do                                    \
+  {                                     \
+    REG_G2D_ROI_BGCLR = color;          \
+  } while (0)
 
-#define G2D_SET_W2M_COLOR_FORMAT(format)                        \
-  do {                                                          \
-    REG_G2D_ROI_CON &= ~G2D_ROI_CON_W2M_COLOR_MASK;             \
-    REG_G2D_ROI_CON |= (format & G2D_ROI_CON_W2M_COLOR_MASK);   \
-  } while(0)
+#define G2D_SET_ROI_OFFSET(x, y)                         \
+  do                                                     \
+  {                                                      \
+    REG_G2D_ROI_OFFSET = (((x) << 16) | (0xFFFF & (y))); \
+  } while (0)
 
-#define G2D_SET_ROI_CON_BG_COLOR(color)                                           \
-  do {                                                                            \
-    REG_G2D_ROI_BGCLR = color;                                                    \
-  } while(0)
+#define G2D_SET_ROI_SIZE(w, h)              \
+  do                                        \
+  {                                         \
+    REG_G2D_ROI_SIZE = (((w) << 16) | (h)); \
+  } while (0)
 
-#define G2D_SET_ROI_OFFSET(x, y)                                                  \
-  do {                                                                            \
-    REG_G2D_ROI_OFFSET = (((x) << 16) | (0xFFFF & (y)));                          \
-  } while(0)
+  ///// Layer
 
-#define G2D_SET_ROI_SIZE(w, h)                                                    \
-  do {                                                                            \
-    REG_G2D_ROI_SIZE = (((w) << 16) | (h));                                       \
-  } while(0)
+#define G2D_CLEAR_LAYER_CON(n) \
+  do                           \
+  {                            \
+    REG_G2D_LAYER_CON(n) = 0;  \
+  } while (0)
 
+#define G2D_SET_LAYER_ADDR(n, addr) \
+  do                                \
+  {                                 \
+    REG_G2D_LAYER_ADDR(n) = addr;   \
+  } while (0)
 
-///// Layer
+#define G2D_SET_LAYER_CON_COLOR_FORMAT(n, format)             \
+  do                                                          \
+  {                                                           \
+    REG_G2D_LAYER_CON(n) &= ~G2D_LX_CON_COLOR_MASK;           \
+    REG_G2D_LAYER_CON(n) |= (format & G2D_LX_CON_COLOR_MASK); \
+  } while (0)
 
-#define G2D_CLEAR_LAYER_CON(n)                                                    \
-  do {                                                                            \
-    REG_G2D_LAYER_CON(n) = 0;                                                     \
-  } while(0)
+#define G2D_SET_LAYER_OFFSET(n, x, y)                         \
+  do                                                          \
+  {                                                           \
+    REG_G2D_LAYER_OFFSET(n) = (((x) << 16) | (0xFFFF & (y))); \
+  } while (0)
 
-#define G2D_SET_LAYER_ADDR(n, addr)                                               \
-  do {                                                                            \
-    REG_G2D_LAYER_ADDR(n) = addr;                                                 \
-  } while(0)
+#define G2D_SET_LAYER_SIZE(n, w, h)              \
+  do                                             \
+  {                                              \
+    REG_G2D_LAYER_SIZE(n) = (((w) << 16) | (h)); \
+  } while (0)
 
-#define G2D_SET_LAYER_CON_COLOR_FORMAT(n, format)                                 \
-  do {                                                                            \
-    REG_G2D_LAYER_CON(n) &= ~G2D_LX_CON_COLOR_MASK;                               \
-    REG_G2D_LAYER_CON(n) |= (format & G2D_LX_CON_COLOR_MASK);                     \
-  } while(0)
+#define G2D_SET_LAYER_PITCH(n, pitch) \
+  do                                  \
+  {                                   \
+    REG_G2D_LAYER_PITCH(n) = pitch;   \
+  } while (0)
 
-#define G2D_SET_LAYER_OFFSET(n, x, y)                                             \
-  do {                                                                            \
-    REG_G2D_LAYER_OFFSET(n) = (((x) << 16) | (0xFFFF & (y)));                     \
-  } while(0)
+#define G2D_ENABLE_ROI_LAYER(layer)         \
+  do                                        \
+  {                                         \
+    REG_G2D_ROI_CON |= (1 << (31 - layer)); \
+  } while (0)
 
-#define G2D_SET_LAYER_SIZE(n, w, h)                                               \
-  do {                                                                            \
-    REG_G2D_LAYER_SIZE(n) = (((w) << 16) | (h));                                  \
-  } while(0)
+#define G2D_SET_LAYER_FONT_FOREGROUND_COLOR(n, color) \
+  do                                                  \
+  {                                                   \
+    REG_G2D_LAYER_FONT_FOREGROUND_COLOR(n) = color;   \
+  } while (0)
 
-#define G2D_SET_LAYER_PITCH(n, pitch)                                             \
-  do {                                                                            \
-    REG_G2D_LAYER_PITCH(n) = pitch;                                               \
-  } while(0)
+#define G2D_SET_LAYER_RECTANGLE_FILL_COLOR(n, color) \
+  do                                                 \
+  {                                                  \
+    REG_G2D_LAYER_RECTANGLE_FILL_COLOR(n) = color;   \
+  } while (0)
 
-#define G2D_ENABLE_ROI_LAYER(layer)                                               \
-  do {                                                                            \
-    REG_G2D_ROI_CON |= (1 << (31 - layer));                                       \
-  } while(0)
+#define G2D_ENABLE_LAYER_CON_FONT(n)                    \
+  do                                                    \
+  {                                                     \
+    REG_G2D_LAYER_CON(n) |= G2D_LX_CON_ENABLE_FONT_BIT; \
+  } while (0)
 
-#define G2D_SET_LAYER_FONT_FOREGROUND_COLOR(n, color)                             \
-  do {                                                                            \
-    REG_G2D_LAYER_FONT_FOREGROUND_COLOR(n) = color;                               \
-  } while(0)
+#define G2D_SET_LAYER_CON_ROTATE(n, rot)                 \
+  do                                                     \
+  {                                                      \
+    REG_G2D_LAYER_CON(n) &= ~G2D_LX_CON_CCW_ROTATE_MASK; \
+    REG_G2D_LAYER_CON(n) |= (rot);                       \
+  } while (0)
 
-#define G2D_SET_LAYER_RECTANGLE_FILL_COLOR(n, color)                              \
-  do {                                                                            \
-    REG_G2D_LAYER_RECTANGLE_FILL_COLOR(n) = color;                                \
-  } while(0)
+#define G2D_ENABLE_LAYER_CON_ALPHA(n)                    \
+  do                                                     \
+  {                                                      \
+    REG_G2D_LAYER_CON(n) |= G2D_LX_CON_ALPHA_ENABLE_BIT; \
+  } while (0)
 
-#define G2D_ENABLE_LAYER_CON_FONT(n)                                              \
-  do {                                                                            \
-    REG_G2D_LAYER_CON(n) |= G2D_LX_CON_ENABLE_FONT_BIT;                           \
-  } while(0)
+#define G2D_SET_LAYER_CON_AA_FONT_BIT(n, bit)             \
+  do                                                      \
+  {                                                       \
+    REG_G2D_LAYER_CON(n) &= ~G2D_LX_CON_AA_FONT_BIT_MASK; \
+    REG_G2D_LAYER_CON(n) |= (bit);                        \
+  } while (0)
 
-#define G2D_SET_LAYER_CON_ROTATE(n, rot)                                          \
-  do {                                                                            \
-    REG_G2D_LAYER_CON(n) &= ~G2D_LX_CON_CCW_ROTATE_MASK;                          \
-    REG_G2D_LAYER_CON(n) |= (rot);                                                \
-  } while(0)
+#define G2D_SET_LAYER_CON_ALPHA(n, alpha)                                    \
+  do                                                                         \
+  {                                                                          \
+    REG_G2D_LAYER_CON(n) &= ~G2D_LX_CON_CONSTANT_ALPHA_MASK;                 \
+    REG_G2D_LAYER_CON(n) |= ((alpha << 8) & G2D_LX_CON_CONSTANT_ALPHA_MASK); \
+  } while (0)
 
-
-
-static inline void hal_g2d_deinit(void) { PCTL_PowerDown(PD_G2D); }
-static inline void hal_g2d_init(void) { PCTL_PowerUp(PD_G2D); }
+  static inline void hal_g2d_deinit(void) { PCTL_PowerDown(PD_G2D); }
+  static inline void hal_g2d_init(void)   { PCTL_PowerUp(PD_G2D);   }
 
 /* clang-format on */
 #ifdef __cplusplus
