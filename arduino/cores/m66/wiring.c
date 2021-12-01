@@ -25,11 +25,7 @@ inline unsigned int seconds(void) { return millis() / 1000; }
 
 inline unsigned int micros() { return USC_GetCurrentTicks(); }
 
-inline void delay(unsigned int ms)
-{
-  //Ql_Sleep(ms);
-  delayEx(ms);
-}
+inline void delay(unsigned int ms){ delayEx(ms); }
 
 inline void delayMicroseconds(unsigned int us) { delay_u(us); }
 
