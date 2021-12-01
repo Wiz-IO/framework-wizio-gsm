@@ -21,24 +21,25 @@
 /* clang-format off */
 
 PinDescription pinsMap[MAX_PINS] = {
-// Arduino   Quectel            Mediatek  EINT_CB
+// Arduino   Quectel            Mediatek  EINT_CB // [pin]
     {0,     PINNAME_NETLIGHT,        3,   NULL }, // [16] LED_NET       PWM
     {1,     PINNAME_DTR,            30,   NULL }, // [19] EINT
     {2,     PINNAME_RI,             43,   NULL }, // [20] I2C_SCL
     {3,     PINNAME_DCD,            44,   NULL }, // [21] I2C_SDA
     {4,     PINNAME_CTS,            14,   NULL }, // [22] 
     {5,     PINNAME_RTS,            15,   NULL }, // [23]
-    {6,     PINNAME_RXD_AUX,         0,   NULL }, // [28]
-    {7,     PINNAME_TXD_AUX,         1,   NULL }, // [29]
+    {6,     PINNAME_RXD_AUX,         0,   NULL }, // [28] RX3
+    {7,     PINNAME_TXD_AUX,         1,   NULL }, // [29] TX3
     {8,     PINNAME_PCM_CLK,        26,   NULL }, // [30] SPI_CS        LS_SCK
     {9,     PINNAME_PCM_SYNC,       29,   NULL }, // [31] SPI_MISO      LS_DC
     {10,    PINNAME_PCM_IN,         27,   NULL }, // [32] SPI_CLK       LS_CS
     {11,    PINNAME_PCM_OUT,        28,   NULL }, // [33] SPI_MOSI      LS_DAT
     {12,    PINNAME_RFTXMON,        22,   NULL }, // [25] LED
-
-// EXTENDED
-    {-1,    -1,                     11,   NULL }, // [17] TX
-    {-1,    -1,                     10,   NULL }, // [18] RX   
+// EXTENDED -----------------------------------------------------------------------
+    {-1,    -1,                     11,   NULL }, // [17] TX1-MAIN, IO
+    {-1,    -1,                     10,   NULL }, // [18] RX1-MAIN, IO  
+    {-1,    -1,                     17,   NULL }, // [39] TX2-DBG,  IO
+    {-1,    -1,                     12,   NULL }, // [38] RX2-DBG,  IO   
 };
 
 /* clang-format on */

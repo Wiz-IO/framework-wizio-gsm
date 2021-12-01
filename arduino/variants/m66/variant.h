@@ -41,7 +41,7 @@ typedef enum {
 #define PWM0            PINNAME_NETLIGHT /* ONLY ONE PIN */
 #define A1              PWM0
 
-#define MAX_PINS        (13 + 2)
+#define MAX_PINS        (13 + 4)
 
     typedef struct
     {
