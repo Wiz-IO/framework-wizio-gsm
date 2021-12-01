@@ -72,14 +72,29 @@ void led_blink(int led, int delay_ms)
   Ql_Sleep(delay_ms);
 }
 
-void pinModeEx(uint8_t mtk_gpio, uint8_t mtk_mode, uint8_t dir)
+void pinModeEx(uint8_t mtk_gpio, uint8_t dir)
 {
-  GPIO_Setup(mtk_gpio, GPMODE(mtk_mode));
-  if (0 == mtk_mode)
+  GPIO_Setup(mtk_gpio, GPMODE(0));
+  if (OUTPUT == dir)
   {
-    if (OUTPUT == dir)
-      GPIO_SETDIROUT(mtk_gpio);
-    else
-      GPIO_SETDIRIN(mtk_gpio);
+    GPIO_SETDIROUT(mtk_gpio); // output
+  }
+  else
+  {
+    GPIO_SETDIRIN(mtk_gpio); // input
+
+    if (INPUT_PULLUP == dir)
+    {
+      GPIO_SETPULLUP(mtk_gpio);
+      GPIO_PULLENABLE(mtk_gpio);
+    }
+
+    if (INPUT_PULLDOWN == dir)
+    {
+      GPIO_SETPULLDOWN(mtk_gpio);
+      GPIO_PULLENABLE(mtk_gpio);
+    }
+
+    GPIO_SETINPUTEN(mtk_gpio);
   }
 }

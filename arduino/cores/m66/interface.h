@@ -35,6 +35,7 @@ extern "C"
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include "ql_common.h"
 #include "ql_type.h"
@@ -135,7 +136,7 @@ extern "C"
     int Ql_inet_aton(const char *cp, uint32_t *ip);
 
     void led_blink(int led, int delay_ms);
-    void pinModeEx(uint8_t mtk_gpio, uint8_t mtk_mode, uint8_t dir);
+    void pinModeEx(uint8_t mtk_gpio, uint8_t dir);
     static inline void digitalWriteEx(uint8_t mtk_gpio, bool val) { GPIO_DATAOUT(mtk_gpio, val); }
     static inline int digitalReadEx(uint8_t mtk_gpio) { return GPIO_DATAIN(mtk_gpio); }
 
