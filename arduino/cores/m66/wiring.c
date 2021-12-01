@@ -33,7 +33,7 @@ inline void delay(unsigned int ms)
 
 inline void delayMicroseconds(unsigned int us) { delay_u(us); }
 
-///////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 
 #define ARRAYLEN(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -85,16 +85,24 @@ void eintMode(uint8_t pin, Enum_EintType type, eint_callback_t cb, uint32_t hwDe
   }
 }
 
-///////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 
-static int _irq_;
+#ifdef USE_INTERRUPTS
+static uint32_t flag_isr;
+extern uint32_t DisableInterrupts(void);
+extern void RestoreInterrupts(uint32_t flags);
+#endif
 
 void interrupts(void)
 {
-  //TODO
+#ifdef USE_INTERRUPTS
+  RestoreInterrupts(flag_isr);
+#endif
 }
 
 void noInterrupts(void)
 {
-  //TODO
+#ifdef USE_INTERRUPTS
+  flag_isr = DisableInterrupts();
+#endif
 }
