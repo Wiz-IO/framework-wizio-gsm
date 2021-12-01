@@ -53,4 +53,11 @@ void loop()
   dht_loop();
 }
 
+/*
+Humidity: 34.00%  Temperature: 26.00 C, 78.80 F,  Heat index: 25.54 C, 77.98 F
+Humidity: 34.00%  Temperature: 26.00 C, 78.80 F,  Heat index: 25.54 C, 77.98 F
+Humidity: 34.00%  Temperature: 26.00 C, 78.80 F,  Heat index: 25.54 C, 77.98 F
+Humidity: 34.00%  Temperature: 26.00 C, 78.80 F,  Heat index: 25.54 C, 77.98 F
+*/
+
 ```
