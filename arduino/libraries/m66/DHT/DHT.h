@@ -1,8 +1,6 @@
 /*
 
-    MOD for Quectel modules 2021 Georgi Angelov
-
-    IF PROBLEM - edit: _maxcycles = 260; 
+    MOD for Quectel ( MT626x /MT250x ) modules 2021 Georgi Angelov
 
 */
 

@@ -1,8 +1,6 @@
 /*
 
-    MOD for Quectel modules 2021 Georgi Angelov
-
-    IF PROBLEM - edit: _maxcycles = 260; 
+    MOD for Quectel ( MT626x /MT250x ) modules 2021 Georgi Angelov
 
 */
 
@@ -249,6 +247,8 @@ float DHT::computeHeatIndex(float temperature, float percentHumidity, bool isFah
  */
 bool DHT::read(bool force)
 {
+  delay(1); // yield, read() cost ~4 mS
+
   // Check if sensor was read less than two seconds ago and return early to use last reading.
   uint32_t currenttime = millis();
   if (!force && ((currenttime - _lastreadtime) < MIN_INTERVAL))
@@ -260,14 +260,12 @@ bool DHT::read(bool force)
   // Reset 40 bits of received data to zero.
   data[0] = data[1] = data[2] = data[3] = data[4] = 0;
 
-  //// yield();
-
   // Send start signal.  See DHT datasheet for full signal diagram:
   // http://www.adafruit.com/datasheets/Digital%20humidity%20and%20temperature%20sensor%20AM2302.pdf
 
   // Go into high impedence state to let pull-up raise data line level and start the reading process.
   pinModeEx(_pin, INPUT_PULLUP); // we use fast pin mode
-  delay(1);
+  delay_m(1);
 
   // First set data line low for a period according to sensor type
   pinModeEx(_pin, OUTPUT); // we use fast pin mode
@@ -278,11 +276,11 @@ bool DHT::read(bool force)
   {
   case DHT22:
   case DHT21:
-    delayMicroseconds(1100); // data sheet says "at least 1ms"
+    delay_u(1100); // data sheet says "at least 1ms"
     break;
   case DHT11:
   default:
-    delay(20); // data sheet says at least 18ms, 20ms just to be safe
+    delay_m(20); // data sheet says at least 18ms, 20ms just to be safe
     break;
   }
 
@@ -293,7 +291,7 @@ bool DHT::read(bool force)
     pinModeEx(_pin, INPUT_PULLUP); // we use fast pin mode
 
     // Delay a moment to let sensor pull data line low.
-    delayMicroseconds(pullTime);
+    delay_u(pullTime);
 
     // Now start reading the data line to get the value from the DHT sensor.
 
@@ -388,12 +386,12 @@ bool DHT::read(bool force)
 // This is adapted from Arduino's pulseInLong function (which is only available
 // in the very latest IDE versions):
 //   https://github.com/arduino/Arduino/blob/master/hardware/arduino/avr/cores/arduino/wiring_pulse.c
+
+#pragma GCC push_options
+#pragma GCC optimize("Os")
 uint32_t DHT::expectPulse(bool level)
 {
   uint32_t count = 0;
-  // use direct GPIO port access as it's much faster and better
-  // for catching pulses that are 10's of microseconds in length:
-  int a = level;
   while (digitalReadEx(_pin) == level) // we use fast pin mode
   {
     if (count++ >= _maxcycles)
@@ -401,6 +399,6 @@ uint32_t DHT::expectPulse(bool level)
       return TIMEOUT; // Exceeded timeout, fail.
     }
   }
-
   return count;
 }
+#pragma GCC pop_options
