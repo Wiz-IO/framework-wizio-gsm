@@ -77,12 +77,12 @@ void pinModeEx(uint8_t mtk_gpio, uint8_t dir)
   GPIO_Setup(mtk_gpio, GPMODE(0));
   if (OUTPUT == dir)
   {
-    GPIO_SETINPUTDIS(mtk_gpio); // disable IN .. need?
-    GPIO_SETDIROUT(mtk_gpio);   // output
+    GPIO_SETINPUTDIS(mtk_gpio); // disable INPUT .. need?
+    GPIO_SETDIROUT(mtk_gpio);   // DIR output
   }
   else
   {
-    GPIO_SETDIRIN(mtk_gpio); // input
+    GPIO_SETDIRIN(mtk_gpio); // DIR input
 
     if (INPUT_PULLUP == dir)
     {
@@ -96,6 +96,6 @@ void pinModeEx(uint8_t mtk_gpio, uint8_t dir)
       GPIO_PULLENABLE(mtk_gpio);
     }
 
-    GPIO_SETINPUTEN(mtk_gpio); // enable IN
+    GPIO_SETINPUTEN(mtk_gpio); // enable INPUT
   }
 }
