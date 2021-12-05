@@ -146,11 +146,25 @@ sample code bearing this copyright.
 #include <Arduino.h>
 #include "OneWire.h"
 
+#define SET_DIR_INPUT()        \
+  do                           \
+  {                            \
+    GPIO_SETINPUTEN(mtk_gpio); \
+    GPIO_SETDIRIN(mtk_gpio);   \
+  } while (0)
+
+#define SET_DIR_OUTPUT()        \
+  do                            \
+  {                             \
+    GPIO_SETINPUTDIS(mtk_gpio); \
+    GPIO_SETDIROUT(mtk_gpio);   \
+  } while (0)
+
 #define DRIVE_LO()             \
   do                           \
   {                            \
+    SET_DIR_OUTPUT();          \
     GPIO_DATAOUT(mtk_gpio, 0); \
-    GPIO_SETDIROUT(mtk_gpio);  \
   } while (0)
 
 #define DRIVE_HI() GPIO_DATAOUT(mtk_gpio, 1);
@@ -184,7 +198,7 @@ uint8_t OneWire::reset(void)
   uint8_t r;
   uint8_t retries = 125;
   GPIO_SETINPUTEN(mtk_gpio);
-  GPIO_SETDIRIN(mtk_gpio);
+  SET_DIR_INPUT();
   // wait until the wire is high... just in case
   do
   {
@@ -194,7 +208,7 @@ uint8_t OneWire::reset(void)
   } while (!GPIO_DATAIN(mtk_gpio));
   DRIVE_LO(); // drive output low
   delay_u(480);
-  GPIO_SETDIRIN(mtk_gpio);
+  SET_DIR_INPUT();
   delay_u(70);
   r = !GPIO_DATAIN(mtk_gpio);
   delay_u(410);
@@ -232,7 +246,7 @@ uint8_t OneWire::read_bit(void)
   uint8_t r;
   DRIVE_LO();
   delay_u(3);
-  GPIO_SETDIRIN(mtk_gpio); // INPUT let pin float, pull up will raise
+  SET_DIR_INPUT(); // INPUT let pin float, pull up will raise
   delay_u(10);
   r = GPIO_DATAIN(mtk_gpio);
   delay_u(53);
