@@ -28,7 +28,9 @@
 #define LCD_SCK GPIO26 /* LCDIF LSCK1[ GPIO26 ] */
 #define LCD_SDA GPIO28 /* LCDIF LSDA1[ GPIO28 ] */
 #define LCD_DC GPIO29  /* LCDIF LSA0DA1[ GPIO29 ] */
-#define LCD_CS (-1)    /* LCDIF LSCE_B1[ GPIO27 ] not used ... optional */
+
+#define LCD_CS (-1) /* LCDIF LSCE_B1[ GPIO27 ] not used ... optional */
+
 #ifndef LCD_RST        /* LCDIF LSRSTB[ GPIO25 is not available ]  */
 #define LCD_RST GPIO27 /* select gpio */
 #endif
@@ -94,6 +96,7 @@ void lcd_reset(const uint8_t *settings)
     LCD_DELAY(RESET_DELAY);
     GPIO_DATAOUT(LCD_RST, 1);
 #endif
+    LCD_DELAY(10);
     lcd_load_settings(settings);
 }
 
