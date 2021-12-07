@@ -35,8 +35,9 @@
 #define LCD_RST GPIO27 /* select gpio */
 #endif
 
-extern void Ql_Sleep(uint32_t msec);
-extern void *Ql_MEM_Alloc(uint32_t size);
+#include "ql_memory.h"
+extern void Ql_Sleep(u32 msec);
+extern void *Ql_MEM_Alloc(u32 size);
 extern void Ql_MEM_Free(void *ptr);
 
 #define LCD_DELAY Ql_Sleep /* or delay_m() */
