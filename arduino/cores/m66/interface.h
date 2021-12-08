@@ -37,6 +37,7 @@ extern "C"
 #include <fcntl.h>
 #include <math.h>
 
+/* OpenCPU support */
 #include "ql_common.h"
 #include "ql_type.h"
 #include "ql_system.h"
@@ -62,6 +63,7 @@ extern "C"
 #include "ql_wtd.h"
 #include "nema_pro.h"
 
+/* RIL support */
 #include "ril.h"
 #include "ril_system.h"
 #include "ril_util.h"
@@ -78,8 +80,7 @@ extern "C"
 #include "ril_audio.h"
 #include "ril_alarm.h"
 
-#define atoi Ql_atoi
-#define atof Ql_atof
+/* memcpy & memset need for startup API library as original code */
 #define memcmp Ql_memcmp
 #define memmove Ql_memmove
 #define strcpy Ql_strcpy
@@ -96,15 +97,13 @@ extern "C"
 #define sprintf Ql_sprintf
 #define snprintf Ql_snprintf
 #define sscanf Ql_sscanf
-#define malloc Ql_MEM_Alloc
-#define free Ql_MEM_Free
+#define atoi Ql_atoi
+#define atof Ql_atof
 
+/* minimal HAL support */
 #include "hal_api.h"
 #include "hal_ustimer.h"
 #include "hal_gpio.h"
-
-#define strtol api_strtol
-#define api_strtoul strtoul
 
     void __libc_init_array(void);
     void __libc_fini_array(void);
@@ -114,7 +113,7 @@ extern "C"
 #define ARDUINO_TASK_ID 3 /* arduino_task_id */
 #define MSG_PROCESS_MESSAGES 0x100
     void arduinoProcessMessages(unsigned int wait);
-    void arduinoSetWait(u32 wait);
+    void arduinoSetWait(u32 wait); /* default is 10 mSec */
 
     unsigned int seconds(void);
     unsigned int millis(void);
@@ -136,6 +135,8 @@ extern "C"
     int Ql_inet_aton(const char *cp, uint32_t *ip);
 
     void led_blink(int led, int delay_ms);
+
+    /* fast GPIO */
     void pinModeEx(uint8_t mtk_gpio, uint8_t dir);
     static inline void digitalWriteEx(uint8_t mtk_gpio, bool val) { GPIO_DATAOUT(mtk_gpio, val); }
     static inline int digitalReadEx(uint8_t mtk_gpio) { return GPIO_DATAIN(mtk_gpio); }

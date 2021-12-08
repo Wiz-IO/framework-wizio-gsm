@@ -86,6 +86,7 @@ extern "C"
     {
         while (arduino.event == 0)
             Ql_Sleep(10);
+
         Ql_OS_WaitEvent(arduino.event, 1); // block & wait ril ready
 
         Ql_OS_SendMessage(id, MSG_PROCESS_MESSAGES, 0, 0); // send one empty message
@@ -105,7 +106,6 @@ extern "C"
     {
         api_init();
 
-        ST_MSG m;
         __libc_init_array();
 
         /* stdio non-buffered */
@@ -113,26 +113,36 @@ extern "C"
         setvbuf(stderr, NULL, _IONBF, 0);
         setvbuf(stdin, NULL, _IONBF, 0);
 
-        arduino.event = Ql_OS_CreateEvent((char *)"ARDUINO_EVENT");
         srand(HAL_SEED);
+
+        arduino.event = Ql_OS_CreateEvent((char *)"ARDUINO_EVENT");
+
+        ST_MSG m;
         while (true)
         {
             Ql_OS_GetMessage(&m);
+
             switch (m.message)
             {
             case MSG_ID_RIL_READY:
                 Ql_RIL_Initialize();
                 Ql_OS_SetEvent(arduino.event, 1); // start arduino task
                 break;
+
             case MSG_ID_URC_INDICATION:
-                if (m.message > URC_GPRS_NW_STATE_IND)                                 // ignore first urc-s
+                if (m.message > URC_GPRS_NW_STATE_IND) // ignore first urc-s
+                {
                     Ql_OS_SendMessage(ARDUINO_TASK_ID, m.message, m.param1, m.param2); // resend to arduino task
+                }
                 break;
+
             default:
                 Ql_OS_SendMessage(ARDUINO_TASK_ID, m.message, m.param1, m.param2); // resend to arduino task
                 break;
-            }
-        }
+
+            } // switch()
+
+        } // while(1)
     }
 
 } // extern "C"

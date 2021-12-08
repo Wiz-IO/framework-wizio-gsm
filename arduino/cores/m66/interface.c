@@ -53,6 +53,7 @@ void __libc_fini_array(void)
 
 void abort(void)
 {
+    printf("[ABORT]");    
     while (1)
     {
         Ql_Sleep(1000);
@@ -66,38 +67,67 @@ void __cxa_finalize(void *handle) {}
 void __cxa_pure_virtual(void) { abort(); }
 void __cxa_deleted_virtual(void) { abort(); }
 
+//////////////////////////////////////////////////////////////////////////////
+
+/* Prevent STD::MEMORY allocation */
+
 void *_sbrk(int incr) { return (void *)-1; }
+
+void *malloc(size_t size)
+{
+    if (0 != size)
+    {
+        return Ql_MEM_Alloc(size);
+    }
+    return NULL;
+}
+
+void free(void *ptr)
+{
+    if (NULL != ptr)
+    {
+        Ql_MEM_Free(ptr);
+    }
+}
 
 void *realloc(void *mem, size_t newsize)
 {
-    if (newsize == 0)
+    if (0 == newsize)
     {
         free(mem);
         return NULL;
     }
-    void *p = malloc(newsize);
-    if (p)
+    void *ptr = Ql_MEM_Alloc(newsize);
+    if (NULL != ptr)
     {
-        if (mem != NULL)
+        if (NULL != mem)
         {
-            memcpy(p, mem, newsize);
+            memcpy(ptr, mem, newsize);
             free(mem);
         }
     }
-    return p;
+    return ptr;
 }
 
 void *calloc(size_t count, size_t size)
 {
     size_t alloc_size = count * size;
-    void *p = malloc(alloc_size);
-    if (p)
+    void *ptr = Ql_MEM_Alloc(alloc_size);
+    if (NULL != ptr)
     {
-        memset(p, 0, alloc_size);
-        return p;
+        memset(ptr, 0, alloc_size);
+        return ptr;
     }
     return NULL;
 }
+
+inline void _free_r(struct _reent *ignore, void *ptr) { free(ptr); }
+
+inline void *_malloc_r(struct _reent *ignore, size_t size) { return malloc(size); }
+
+inline void *_realloc_r(struct _reent *ignored, void *ptr, size_t size) { return realloc(ptr, size); }
+
+inline void *_calloc_r(struct _reent *ignored, size_t element, size_t size) { return calloc(element, size); }
 
 //////////////////////////////////////////////////////////////////////////////
 
