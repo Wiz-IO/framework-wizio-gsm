@@ -29,7 +29,7 @@ hal_api_t *HAL = NULL;
 /* FIRMWARE DEPENDENT FUNCTIONS */
 static hal_api_t HAL_TABLE[API_COUNT] = {
     {
-        "TODO",
+        "TODO", 0,
     },
 };
 #pragma GCC diagnostic pop
