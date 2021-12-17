@@ -22,7 +22,7 @@ hal_api_t *HAL = NULL;
 
 #ifdef USE_API
 
-#define API_COUNT 1
+#define API_COUNT 1 /* FW */
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
